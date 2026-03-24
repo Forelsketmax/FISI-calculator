@@ -2,7 +2,7 @@
 
 > 食物炎症指数评估工具 - Food-based Inflammatory Score Index Calculator
 
-一个基于Web的FISI计算器，帮助用户评估饮食的炎症指数。支持在9223种食物中进行模糊搜索，实时计算FISI值，并判定促炎或抗炎状态。
+一个基于Web的FISI计算器，帮助用户评估饮食的炎症指数。支持在9925种食物中进行模糊搜索，实时计算FISI值，并判定促炎或抗炎状态。
 
 ## 🌟 在线演示
 
@@ -11,11 +11,11 @@
 
 ## ✨ 功能特性
 
-- 🔍 **模糊搜索**: 基于Fuse.js在9223种食物中快速查找
+- 🔍 **模糊搜索**: 基于Fuse.js在9925种食物中快速查找
 - 📊 **实时计算**: 使用公式 `FISI = Σ(摄入量/100 × FII)` 实时计算
 - 🎯 **结果判定**: 
-  - FISI > -11.2：促炎（红色标识）
-  - FISI < -11.2：抗炎（绿色标识）
+  - FISI > -6.85：促炎（红色标识）
+  - FISI < -6.85：抗炎（绿色标识）
 - 📱 **响应式设计**: 完美支持桌面和移动设备
 - 🎨 **医学科研风格**: 专业、简洁、直观的UI设计
 - ⚡ **零构建工具**: 纯HTML/CSS/JavaScript，无需npm或webpack
@@ -26,7 +26,7 @@
 fisi-calculator/
 ├── index.html              # 主页面
 ├── data/
-│   └── foods.json          # 9223种食物数据（1.2MB）
+│   └── foods.json          # 9925种食物数据
 ├── convert-csv-to-json.js  # 数据转换脚本
 ├── README.md               # 项目说明
 └── .gitignore             # Git忽略文件
@@ -104,7 +104,7 @@ FISI = Σ(摄入量/100 × FII)
 FISI总分 = -0.155 + (-0.078) = -0.233
 ```
 
-结果：FISI = -0.233 < -11.2，判定为**抗炎**
+结果：FISI = -0.233 ＞ -6.85，判定为**促炎**
 
 ## 🛠️ 技术栈
 
@@ -117,14 +117,14 @@ FISI总分 = -0.155 + (-0.078) = -0.233
 ## 📊 数据说明
 
 ### 数据来源
-- 包含9223种食物的FII数据
+- 包含9925种食物的FII数据
 - 数据来源于FNDDS（Food and Nutrient Database for Dietary Studies）
 
 ### 数据字段
 - **Food_code**: 食物代码（8位数字）
 - **Main_food_description**: 食物描述（英文）
 - **FII**: 食物炎症指数
-- **FII_score**: FII分数
+- **FII score**: FII分数
 
 ## 🔧 开发指南
 
@@ -152,7 +152,7 @@ const contribution = (amount / 100) * selectedFood.FII;
 在 [`index.html`](index.html:295) 中找到 `updateDashboard` 函数：
 
 ```javascript
-const threshold = -11.2;  // 修改此值
+const threshold = -6.85;  // 修改此值
 ```
 
 ## 🌐 浏览器兼容性
