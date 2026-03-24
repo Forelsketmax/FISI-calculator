@@ -658,7 +658,7 @@
             if (fisiHistory.length === 0) return;
             
             const ctx = document.getElementById('historyChart');
-            const labels = fisiHistory.map((r, i) => `记录${i + 1}`);
+            const labels = fisiHistory.map(r => new Date(r.date).toLocaleDateString('zh-CN'));
             const data = fisiHistory.map(r => r.fisi);
             
             historyChart = new Chart(ctx, {
@@ -701,7 +701,7 @@
                 return;
             }
             
-            const labels = fisiHistory.map((r, i) => `记录${i + 1}`);
+            const labels = fisiHistory.map(r => new Date(r.date).toLocaleDateString('zh-CN'));
             const data = fisiHistory.map(r => r.fisi);
             
             if (historyChart) {
