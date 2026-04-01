@@ -57,7 +57,7 @@ php -S localhost:8000
 2. 上传所有文件到仓库
 3. 在仓库设置中启用GitHub Pages
 4. 选择分支（通常是main）和根目录
-5. 访问 `https://forelsketmax.github.io/FISI-calculator/`
+5. 访问 https://forelsketmax.github.io/FISI-calculator/
 
 ### 方法3：部署到Vercel
 
