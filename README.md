@@ -6,8 +6,7 @@
 
 ## 🌟 在线演示
 
-- **GitHub Pages**: [https://your-username.github.io/fisi-calculator/](https://your-username.github.io/fisi-calculator/)
-- **Vercel**: [https://fisi-calculator.vercel.app](https://fisi-calculator.vercel.app)
+- **GitHub Pages**: https://forelsketmax.github.io/FISI-calculator/
 
 ## ✨ 功能特性
 
