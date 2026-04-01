@@ -57,7 +57,7 @@ php -S localhost:8000
 2. 上传所有文件到仓库
 3. 在仓库设置中启用GitHub Pages
 4. 选择分支（通常是main）和根目录
-5. 访问 `https://your-username.github.io/repo-name/`
+5. 访问 `https://forelsketmax.github.io/FISI-calculator/`
 
 ### 方法3：部署到Vercel
 
@@ -176,31 +176,26 @@ A: 请检查：
 - 检查浏览器控制台的错误信息
 
 ### Q: 可以保存我的食谱吗？
-A: 当前版本不支持数据持久化。刷新页面后数据会丢失。
+A: 当前版本支持数据持久化，可以显示FISI历史记录。
 
 ## 🚧 未来计划
 
-- [ ] 数据持久化（LocalStorage）
 - [ ] 导出功能（PDF/CSV）
 - [ ] 多日记录和趋势分析
 - [ ] 营养成分分析
-- [ ] 中英文双语支持
 - [ ] PWA支持（离线使用）
 
 ## 📄 许可证
 
 本项目仅供学习和研究使用。食物数据来源于公开数据库。
 
-## 🤝 贡献
 
-欢迎提交Issue和Pull Request！
 
 ## 📧 联系方式
 
 如有问题或建议，请通过以下方式联系：
-- 提交 [Issue](https://github.com/your-username/fisi-calculator/issues)
-- 发送邮件
-- 提交 Pull Request
+- 提交 [Issue](https://github.com/Forelsketmax/FISI-calculator/issues)
+- 发送邮件到2545010438@stu.ahmu.edu.cn
 
 ## 🙏 致谢
 
