@@ -116,7 +116,7 @@ FISI总分 = -0.155 + (-0.078) = -0.233
 ## 📊 数据说明
 
 ### 数据来源
-- 包含9925种食物的FII数据
+- 包含9931种食物的FII数据
 - 数据来源于FNDDS（Food and Nutrient Database for Dietary Studies）
 
 ### 数据字段
@@ -135,7 +135,7 @@ FISI总分 = -0.155 + (-0.078) = -0.233
 node convert-csv-to-json.js
 ```
 
-这将从 `9229种食物的FII值.csv` 生成 `data/foods.json`
+这将从 `9231种食物的FII值.csv` 生成 `data/foods.json`
 
 ### 修改计算公式
 
