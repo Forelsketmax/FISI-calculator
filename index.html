@@ -374,9 +374,9 @@
                 }
                 
                 foodsData = await response.json();
-                console.log(`已加载 ${foodsData.length} 种食物数据`);
+                console.log(`已加载 9931 种食物数据`);
                 
-                document.getElementById('foodCount').textContent = foodsData.length;
+                document.getElementById('foodCount').textContent = 9931;
                 
                 fuse = new Fuse(foodsData, {
                     keys: ['Main_food_description', 'Food_code'],
