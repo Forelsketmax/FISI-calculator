@@ -534,8 +534,7 @@
             
             // 清空搜索
             document.getElementById('searchInput').value = '';
-            document.getElementById('searchResults').classList.add('hidden');
-            document.getElementById('recommendedFoods').classList.remove('hidden'); 
+            handleSearch('');
         }
 
         // 删除食物
