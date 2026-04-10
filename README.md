@@ -17,7 +17,7 @@
   - FISI < -6.85：抗炎（绿色标识）
 - 📱 **响应式设计**: 完美支持桌面和移动设备
 - 🎨 **医学科研风格**: 专业、简洁、直观的UI设计
-- ⚡ **零构建工具**: 纯HTML/CSS/JavaScript，无需npm或webpack
+- ⚡ **零构建工具**: 纯HTML/Python/JavaScript，无需npm或webpack
 
 ## 📦 项目结构
 
