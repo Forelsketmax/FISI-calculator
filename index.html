@@ -201,18 +201,28 @@
                     </div>
 
                     <!-- History Chart -->
-                    <div id="historySection" class="bg-white rounded-lg shadow-md p-6 hidden">
-                        <div class="flex justify-between items-center mb-4">
-                            <h3 class="text-lg font-semibold text-gray-900" data-i18n="historyTitle">FISI历史记录</h3>
-                            <button
-                                id="clearHistoryBtn"
-                                class="text-sm text-red-600 hover:text-red-700 font-medium"
-                                data-i18n="clearHistory"
-                            >
+ <div id="historySection" class="bg-white rounded-lg shadow-md p-6 hidden">
+    <div class="flex justify-between items-center mb-4">
+        <h3 class="text-lg font-semibold text-gray-900">FISI历史记录</h3>
+    </div>
+
+    <!-- 图表 -->
+    <canvas id="historyChart" class="w-full" height="200"></canvas>
+
+    <!-- ⭐ 新增：历史列表 -->
+    <div class="mt-4">
+        <h4 class="text-sm font-medium text-gray-700 mb-2">历史食谱</h4>
+        <div id="historyList" class="space-y-2 max-h-64 overflow-y-auto"></div>
+    </div>
+</div>
                                 清空历史
                             </button>
                         </div>
                         <canvas id="historyChart" class="w-full" height="200"></canvas>
+                        <div class="mt-4">
+                            <h4 class="text-sm font-medium text-gray-700 mb-2">历史食谱</h4>
+                            <div id="historyList" class="space-y-2 max-h-64 overflow-y-auto"></div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -233,9 +243,10 @@
         let fuse = null;
         let selectedFoods = [];
         let selectedFood = null;
-        let currentLang = 'zh'; // 默认中文
+        let currentLang = 'en'; // 默认中文
         let fisiHistory = JSON.parse(localStorage.getItem('fisiHistory') || '[]');
         let historyChart = null;
+        let activeRecipeDate = null;
 
         // 多语言文本
         const i18n = {
@@ -484,6 +495,13 @@
                 currentLang = currentLang === 'zh' ? 'en' : 'zh';
                 updateLanguage();
                 displayRecommendedFoods();
+                updateCriteriaText();
+                // 重新渲染食物列表和仪表盘
+                updateRecipeTitle();
+                updateFoodList();
+                updateDashboard();
+                renderHistoryList();
+                updateHistoryChart();
             });
             
             // Enter键添加食物
@@ -581,6 +599,7 @@
             };
             
             selectedFoods.push(foodItem);
+            resetToTodayRecipeView();
             updateFoodList();
             updateDashboard();
             hideInputModal();
@@ -591,11 +610,24 @@
         }
 
         // 删除食物
-        function removeFood(id) {
-            selectedFoods = selectedFoods.filter(f => f.id !== id);
-            updateFoodList();
-            updateDashboard();
-        }
+        function loadHistoryRecipe(index) {
+    const record = fisiHistory[index];
+    if (!record) return;
+
+    selectedFoods = record.foods.map((food, i) => ({
+        id: `history-${record.id}-${i}`,
+        description: food.description,
+        amount: Number(food.amount),
+        fii: Number(food.fii),
+        contribution: food.contribution ?? (Number(food.amount) / 100) * Number(food.fii)
+    }));
+
+    activeRecipeDate = record.displayDate || record.date;
+
+    updateRecipeTitle();
+    updateFoodList();
+    updateDashboard();
+}
 
         // 清空所有食物
         function clearAllFoods() {
@@ -680,94 +712,190 @@
         }
 
         // 保存记录
-        function saveRecord() {
-            const totalFISI = selectedFoods.reduce((sum, food) => sum + food.contribution, 0);
-            const record = {
-                date: new Date().toISOString(),
-                fisi: totalFISI,
-                foods: selectedFoods.map(f => ({
-                    description: f.description,
-                    amount: f.amount,
-                    fii: f.fii
-                }))
-            };
-            fisiHistory.push(record);
-            localStorage.setItem('fisiHistory', JSON.stringify(fisiHistory));
-            updateHistoryChart();
-            alert(i18n[currentLang].recordSaved);
-        }
+function saveRecord() {
+    const totalFISI = selectedFoods.reduce((sum, food) => sum + food.contribution, 0);
+    const now = new Date();
 
+    const record = {
+        id: crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+        date: now.toISOString(),
+        displayDate: now.toLocaleString(currentLang === 'zh' ? 'zh-CN' : 'en-US'),
+        fisi: totalFISI,
+        foods: selectedFoods.map(f => ({
+            contribution: f.contribution,
+            amount: f.amount,
+            fii: f.fii,
+            contribution: f.contribution
+        }))
+    };
+
+    fisiHistory.push(record);
+
+    // 按时间从旧到新排序
+    fisiHistory.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+    // 最多保留 7 条，超出就删除最早的
+    if (fisiHistory.length > 7) {
+        fisiHistory = fisiHistory.slice(-7);
+    }
+
+    localStorage.setItem('fisiHistory', JSON.stringify(fisiHistory));
+    updateHistoryChart();
+    renderHistoryList();
+    alert(i18n[currentLang].recordSaved);
+}
         // 清空历史
         function clearHistory() {
             if (confirm(i18n[currentLang].confirmClearHistory)) {
                 fisiHistory = [];
                 localStorage.removeItem('fisiHistory');
                 updateHistoryChart();
+                renderHistoryList();
             }
         }
 
         // 初始化图表
-        function initHistoryChart() {
-            if (fisiHistory.length === 0) return;
-            
-            const ctx = document.getElementById('historyChart');
-            const labels = fisiHistory.map(r => new Date(r.date).toLocaleDateString('zh-CN'));
-            const data = fisiHistory.map(r => r.fisi);
-            
-            historyChart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: 'FISI',
-                        data: data,
-                        borderColor: 'rgb(59, 130, 246)',
-                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                        tension: 0.3
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend: { display: false }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: false,
-                            grid: { color: 'rgba(0, 0, 0, 0.05)' }
-                        }
-                    }
+function initHistoryChart() {
+    if (fisiHistory.length === 0) return;
+
+    const ctx = document.getElementById('historyChart');
+    const labels = fisiHistory.map(r =>
+        new Date(r.date).toLocaleDateString(currentLang === 'zh' ? 'zh-CN' : 'en-US')
+    );
+    const data = fisiHistory.map(r => r.fisi);
+
+    historyChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'FISI',
+                data: data,
+                borderColor: 'rgb(59, 130, 246)',
+                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                tension: 0.3
+            }]
+        },
+        options: {
+            responsive: true,
+            onClick: (event, elements) => {
+                if (elements.length > 0) {
+                    const index = elements[0].index;
+                    loadHistoryRecipe(index);
                 }
-            });
-            
-            document.getElementById('historySection').classList.remove('hidden');
+            },
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                y: {
+                    beginAtZero: false,
+                    grid: { color: 'rgba(0, 0, 0, 0.05)' }
+                }
+            }
         }
+    });
+
+    document.getElementById('historySection').classList.remove('hidden');
+    renderHistoryList();
+}
 
         // 更新图表
-        function updateHistoryChart() {
-            if (fisiHistory.length === 0) {
-                if (historyChart) {
-                    historyChart.destroy();
-                    historyChart = null;
-                }
-                document.getElementById('historySection').classList.add('hidden');
-                return;
-            }
-            
-            const labels = fisiHistory.map(r => new Date(r.date).toLocaleDateString('zh-CN'));
-            const data = fisiHistory.map(r => r.fisi);
-            
-            if (historyChart) {
-                historyChart.data.labels = labels;
-                historyChart.data.datasets[0].data = data;
-                historyChart.update();
-            } else {
-                initHistoryChart();
-            }
-            
-            document.getElementById('historySection').classList.remove('hidden');
+function updateHistoryChart() {
+    if (fisiHistory.length === 0) {
+        if (historyChart) {
+            historyChart.destroy();
+            historyChart = null;
         }
+        document.getElementById('historySection').classList.add('hidden');
+        renderHistoryList();
+        return;
+    }
 
+    const labels = fisiHistory.map(r =>
+        new Date(r.date).toLocaleDateString(currentLang === 'zh' ? 'zh-CN' : 'en-US')
+    );
+    const data = fisiHistory.map(r => r.fisi);
+
+    if (historyChart) {
+        historyChart.data.labels = labels;
+        historyChart.data.datasets[0].data = data;
+        historyChart.update();
+    } else {
+        initHistoryChart();
+    }
+
+    document.getElementById('historySection').classList.remove('hidden');
+    renderHistoryList();
+}
+function renderHistoryList() {
+    const historyList = document.getElementById('historyList');
+    const historySection = document.getElementById('historySection');
+
+    if (!historyList) return;
+
+    if (fisiHistory.length === 0) {
+        historyList.innerHTML = `<p class="text-gray-400 text-sm text-center py-4">${currentLang === 'zh' ? '暂无历史记录' : 'No history records'}</p>`;
+        historySection.classList.add('hidden');
+        return;
+    }
+
+    historySection.classList.remove('hidden');
+
+    const displayRecords = [...fisiHistory].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    historyList.innerHTML = displayRecords.map(record => {
+        const originalIndex = fisiHistory.findIndex(
+            r => r.dayKey === record.dayKey && r.date === record.date
+        );
+
+        return `
+            <div class="border border-gray-200 rounded-lg overflow-hidden">
+                <div class="p-3 flex items-center justify-between bg-white hover:bg-gray-50 transition-colors">
+                    <div>
+                        <p class="font-medium text-gray-900">
+                            ${new Date(record.date).toLocaleDateString(currentLang === 'zh' ? 'zh-CN' : 'en-US')}
+                        </p>
+                        <p class="text-sm text-gray-500">
+                            FISI: ${Number(record.fisi).toFixed(2)} ｜ ${record.foods.length} ${currentLang === 'zh' ? '种食物' : 'foods'}
+                        </p>
+                    </div>
+                    <div class="flex gap-2 flex-wrap justify-end">
+                        <button
+                            onclick="toggleHistoryDetails(${originalIndex})"
+                            class="px-3 py-1.5 bg-gray-200 text-gray-700 text-sm rounded-lg hover:bg-gray-300 transition-colors"
+                        >
+                            ${currentLang === 'zh' ? '详情' : 'Details'}
+                        </button>
+                        <button
+                            onclick="loadHistoryRecipe(${originalIndex})"
+                            class="px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
+                        >
+                            ${currentLang === 'zh' ? '加载' : 'Load'}
+                        </button>
+                        <button
+                            onclick="deleteHistoryRecord(${originalIndex})"
+                            class="px-3 py-1.5 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 transition-colors"
+                        >
+                            ${currentLang === 'zh' ? '删除' : 'Delete'}
+                        </button>
+                    </div>
+                </div>
+
+                <div id="history-detail-${originalIndex}" class="hidden border-t border-gray-100 bg-gray-50 p-3 space-y-2">
+                    ${record.foods.map(food => `
+                        <div class="flex justify-between text-sm gap-3">
+                            <span class="text-gray-800">${food.description}</span>
+                            <span class="text-gray-500 whitespace-nowrap">
+                                ${food.amount}g ｜ FII ${Number(food.fii).toFixed(2)} ｜ ${currentLang === 'zh' ? '贡献' : 'Contribution'} ${Number(food.contribution ?? ((food.amount / 100) * food.fii)).toFixed(2)}
+                            </span>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+    }).join('');
+}
         // 启动应用
         init();
     </script>
