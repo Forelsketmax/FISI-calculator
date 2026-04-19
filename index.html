@@ -85,6 +85,14 @@
       background: transparent;
     }
 
+    .food-photo {
+      width: 100%;
+      aspect-ratio: 4 / 3;
+      object-fit: cover;
+      border-radius: 1rem;
+      border: 1px solid rgba(148, 163, 184, .25);
+    }
+
     .metric-ring {
       position: relative;
       width: 180px;
@@ -197,7 +205,7 @@
         <div class="flex flex-wrap items-center gap-3">
           <div class="hidden sm:flex items-center gap-2 px-3 py-2 rounded-xl border border-slate-200 bg-white/80">
             <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 pulse-soft"></span>
-            <span class="text-sm text-slate-600" data-i18n="headerHint">本地保存 · 历史回看 · 7条记录</span>
+            <span class="text-sm text-slate-600" data-i18n="headerHint">本地保存 · 历史回看 · 21条记录</span>
           </div>
           <button
             id="langToggle"
@@ -250,7 +258,7 @@
                 <div class="rounded-2xl border border-white/80 bg-white/80 p-4 shadow-sm">
                   <p class="text-xs font-semibold text-slate-500" data-i18n="heroMetric2Label">历史记录</p>
                   <p class="text-2xl font-extrabold text-slate-900 mt-1"><span id="historyCount">0</span></p>
-                  <p class="text-xs text-slate-500 mt-1" data-i18n="heroMetric2Hint">最多保留 7 条</p>
+                  <p class="text-xs text-slate-500 mt-1" data-i18n="heroMetric2Hint">最多保留 21 条</p>
                 </div>
               </div>
             </div>
@@ -340,11 +348,18 @@
             <div class="flex items-center justify-between gap-3 mb-4">
               <div>
                 <h3 class="panel-title" data-i18n="recommended">高FII分数食物推荐</h3>
-                <p class="text-sm text-slate-500 mt-1" data-i18n="recommendedHint">这些食物的 FII 分数较高，可作为搜索与搭配参考。</p>
+                <p class="text-sm text-slate-500 mt-1" data-i18n="recommendedHint">按 FII 高于平均值筛选，并自动滚动展示。</p>
               </div>
               <span class="px-3 py-1 rounded-full text-xs font-semibold bg-orange-100 text-orange-700 border border-orange-200">Top Picks</span>
             </div>
             <div id="scrollContent" class="grid sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2 gap-3 custom-scroll max-h-[620px] overflow-y-auto pr-1"></div>
+            <div class="mt-4 rounded-2xl border border-emerald-100 bg-emerald-50/70 p-4">
+              <div class="flex items-center justify-between gap-2">
+                <p class="text-sm font-semibold text-emerald-800" data-i18n="antiFoodGallery">抗炎食物灵感图</p>
+                <span class="text-xs text-emerald-700" data-i18n="antiFoodGalleryHint">建议多样搭配</span>
+              </div>
+              <div id="antiInflammatoryGallery" class="mt-3 grid grid-cols-2 gap-3"></div>
+            </div>
           </div>
 
           <div id="searchResults" class="glass rounded-3xl p-6 hidden">
@@ -442,7 +457,7 @@
             <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
               <div>
                 <h3 class="panel-title" data-i18n="historyTitle">FISI历史记录</h3>
-                <p class="text-sm text-slate-500" data-i18n="historyHint">保留最近 7 条记录，可展开详情并加载到当前食谱区。</p>
+                <p class="text-sm text-slate-500" data-i18n="historyHint">保留最近 21 条记录，可展开详情并加载到当前食谱区。</p>
               </div>
               <button
                 id="clearHistoryBtn"
@@ -510,24 +525,35 @@
     let fisiHistory = JSON.parse(localStorage.getItem('fisiHistory') || '[]');
     let historyChart = null;
     let activeRecipeDate = null;
-    const HISTORY_LIMIT = 7;
+    let recommendedAutoScrollTimer = null;
+    const AUTO_SCROLL_STEP = 1;
+    const AUTO_SCROLL_INTERVAL = 28;
+    const HISTORY_LIMIT = 21;
+    const ANTI_INFLAMMATORY_IMAGES = [
+      { zh: '蓝莓与草莓', en: 'Blueberries and strawberries', src: 'https://images.unsplash.com/photo-1518635017498-87f514b751ba?auto=format&fit=crop&w=900&q=80' },
+      { zh: '三文鱼配柠檬', en: 'Salmon with lemon', src: 'https://images.unsplash.com/photo-1467003909585-2f8a72700288?auto=format&fit=crop&w=900&q=80' },
+      { zh: '牛油果沙拉', en: 'Avocado salad', src: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=900&q=80' },
+      { zh: '坚果与橄榄油', en: 'Nuts and olive oil', src: 'https://images.unsplash.com/photo-1505253716362-afaea1d3d1af?auto=format&fit=crop&w=900&q=80' }
+    ];
 
     const i18n = {
       zh: {
         title: 'FISI 计算器',
         subtitle: 'Food Inflammation Scores of Individuals - 食物炎症指数评估工具',
-        headerHint: '本地保存 · 历史回看 · 7条记录',
+        headerHint: '本地保存 · 历史回看 · 21条记录',
         heroEyebrow: 'Nutrition Intelligence',
         heroTitle: '搜索食物、计算 FISI、保存并回看每日食谱',
         heroText: '输入食物名称或代码，添加摄入量后自动累计 FISI。支持本地历史记录、图表趋势和单次食谱回填查看。',
         heroMetric1Label: '已加载数据',
         heroMetric2Label: '历史记录',
-        heroMetric2Hint: '最多保留 7 条',
+        heroMetric2Hint: '最多保留 21 条',
         searchLabel: '搜索食物',
         searchPlaceholder: '输入食物名称或代码（如：milk, chicken, rice）',
         searchTip: '支持模糊搜索，建议输入 2 个以上字符。',
         recommended: '高FII分数食物推荐',
-        recommendedHint: '这些食物的 FII 分数较高，可作为搜索与搭配参考。',
+        recommendedHint: '按 FII 高于平均值筛选，并自动滚动展示。',
+        antiFoodGallery: '抗炎食物灵感图',
+        antiFoodGalleryHint: '建议多样搭配',
         searchResults: '搜索结果',
         searchResultsHint: '点击任一食物以输入摄入量。',
         addFood: '添加食物',
@@ -557,7 +583,7 @@
         foodCode: '代码',
         saveRecord: '保存本次记录',
         historyTitle: 'FISI历史记录',
-        historyHint: '保留最近 7 条记录，可展开详情并加载到当前食谱区。',
+        historyHint: '保留最近 21 条记录，可展开详情并加载到当前食谱区。',
         historyListTitle: '历史食谱',
         historyListHint: '点击“加载”即可回看该次记录',
         clearHistory: '清空历史',
@@ -598,18 +624,20 @@
       en: {
         title: 'FISI Calculator',
         subtitle: 'Food Inflammation Scores of Individuals - Food Inflammation Score Tool',
-        headerHint: 'Saved locally · History recall · 7 records',
+        headerHint: 'Saved locally · History recall · 21 records',
         heroEyebrow: 'Nutrition Intelligence',
         heroTitle: 'Search foods, calculate FISI, save and reload meal records',
         heroText: 'Search by food name or code, add intake amount, and track FISI in real time. Includes local history, charts, and meal recall.',
         heroMetric1Label: 'Loaded Data',
         heroMetric2Label: 'History',
-        heroMetric2Hint: 'Keep latest 7',
+        heroMetric2Hint: 'Keep latest 21',
         searchLabel: 'Search Food',
         searchPlaceholder: 'Enter food name or code (e.g., milk, chicken, rice)',
         searchTip: 'Fuzzy search supported. Use at least 2 characters.',
         recommended: 'High FII Foods',
-        recommendedHint: 'Foods with higher FII scores, useful as references for search and meal planning.',
+        recommendedHint: 'Filtered by FII above average and auto-scrolled for quick browsing.',
+        antiFoodGallery: 'Anti-inflammatory food ideas',
+        antiFoodGalleryHint: 'Mix and match',
         searchResults: 'Search Results',
         searchResultsHint: 'Click any food to enter intake amount.',
         addFood: 'Add Food',
@@ -639,7 +667,7 @@
         foodCode: 'Code',
         saveRecord: 'Save Record',
         historyTitle: 'FISI History',
-        historyHint: 'Keeps the latest 7 records. Expand details or load a record back into the recipe panel.',
+        historyHint: 'Keeps the latest 21 records. Expand details or load a record back into the recipe panel.',
         historyListTitle: 'History Recipes',
         historyListHint: 'Click "Load" to review that saved record',
         clearHistory: 'Clear History',
@@ -735,14 +763,65 @@
       return -Infinity;
     }
 
+    function renderAntiInflammatoryGallery() {
+      const gallery = document.getElementById('antiInflammatoryGallery');
+      if (!gallery) return;
+
+      gallery.innerHTML = ANTI_INFLAMMATORY_IMAGES.map((item) => `
+        <figure class="rounded-2xl border border-emerald-100 bg-white/80 p-2">
+          <img src="${item.src}" alt="${currentLang === 'zh' ? item.zh : item.en}" class="food-photo" loading="lazy" />
+          <figcaption class="mt-2 text-xs text-slate-600 font-medium">${currentLang === 'zh' ? item.zh : item.en}</figcaption>
+        </figure>
+      `).join('');
+    }
+
+    function setupRecommendedAutoScroll() {
+      const container = document.getElementById('scrollContent');
+      if (!container) return;
+      if (recommendedAutoScrollTimer) {
+        clearInterval(recommendedAutoScrollTimer);
+        recommendedAutoScrollTimer = null;
+      }
+
+      const startScroll = () => {
+        if (recommendedAutoScrollTimer) return;
+        recommendedAutoScrollTimer = setInterval(() => {
+          if (container.scrollHeight <= container.clientHeight + 4) return;
+          const reachedBottom = container.scrollTop + container.clientHeight >= container.scrollHeight - 2;
+          container.scrollTop = reachedBottom ? 0 : container.scrollTop + AUTO_SCROLL_STEP;
+        }, AUTO_SCROLL_INTERVAL);
+      };
+
+      container.onmouseenter = () => {
+        if (recommendedAutoScrollTimer) {
+          clearInterval(recommendedAutoScrollTimer);
+          recommendedAutoScrollTimer = null;
+        }
+      };
+      container.onmouseleave = startScroll;
+      startScroll();
+    }
+
     function displayRecommendedFoods() {
       const container = document.getElementById('scrollContent');
       if (!container) return;
 
+      const validFoods = foodsData.filter(food => Number.isFinite(Number(food.FII)));
+      const averageFii = validFoods.length
+        ? validFoods.reduce((sum, food) => sum + safeNumber(food.FII), 0) / validFoods.length
+        : 0;
+
       const topFoods = [...foodsData]
-        .filter(food => Number.isFinite(Number(food.FII)))
+        .filter(food => Number.isFinite(Number(food.FII)) && safeNumber(food.FII) > averageFii)
         .sort((a, b) => getTopFoodFii(b) - getTopFoodFii(a))
-        .slice(0, 18);
+        .slice(0, 36);
+
+      if (topFoods.length === 0) {
+        container.innerHTML = `<p class="text-slate-400 text-center py-6 col-span-full">${i18n[currentLang].noMatch}</p>`;
+        setupRecommendedAutoScroll();
+        renderAntiInflammatoryGallery();
+        return;
+      }
 
       container.innerHTML = topFoods.map(food => {
         const fii = safeNumber(food.FII);
@@ -765,6 +844,9 @@
           </button>
         `;
       }).join('');
+
+      setupRecommendedAutoScroll();
+      renderAntiInflammatoryGallery();
     }
 
     async function init() {
@@ -1264,10 +1346,11 @@
       }
 
       if (historySection) historySection.classList.remove('hidden');
-      const displayRecords = [...fisiHistory].sort((a, b) => new Date(b.date) - new Date(a.date));
+      const displayRecords = fisiHistory
+        .map((record, originalIndex) => ({ record, originalIndex }))
+        .sort((a, b) => new Date(b.record.date) - new Date(a.record.date));
 
-      historyList.innerHTML = displayRecords.map((record) => {
-        const originalIndex = fisiHistory.findIndex(r => r.id === record.id);
+      historyList.innerHTML = displayRecords.map(({ record, originalIndex }) => {
         const displayTime = record.displayDate || formatDateTime(record.date);
         const isActive = activeRecipeDate && activeRecipeDate === displayTime;
         const isLatest = originalIndex === fisiHistory.length - 1;
