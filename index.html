@@ -1,775 +1,1321 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="FISI计算器 - 食物炎症指数评估工具，帮助您评估饮食的炎症指数">
-    <meta name="keywords" content="FISI,食物炎症指数,营养评估,健康饮食">
-    <title>FISI 计算器 - 食物炎症指数评估工具</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/fuse.js@7.0.0"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-        body {
-            font-family: 'Inter', sans-serif;
-            background: 
-                radial-gradient(circle at 20% 50%, rgba(59, 130, 246, 0.08) 0%, transparent 50%),
-                radial-gradient(circle at 80% 80%, rgba(16, 185, 129, 0.08) 0%, transparent 50%),
-                radial-gradient(circle at 40% 20%, rgba(239, 68, 68, 0.06) 0%, transparent 50%),
-                #f9fafb;
-            background-attachment: fixed;
-        }
-        .fade-in {
-            animation: fadeIn 0.3s ease-in;
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(-10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .spinner {
-            border: 3px solid #f3f4f6;
-            border-top: 3px solid #3b82f6;
-            border-radius: 50%;
-            width: 48px;
-            height: 48px;
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        @keyframes autoScroll {
-            0% { transform: translateY(0); }
-            100% { transform: translateY(-50%); }
-        }
-        .auto-scrolling {
-            animation: autoScroll 300s linear infinite;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="FISI计算器 - 食物炎症指数评估工具，支持搜索、食谱记录、历史回看与趋势分析" />
+  <meta name="keywords" content="FISI, 食物炎症指数, FII, 营养评估, 健康饮食" />
+  <title>FISI 计算器 </title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/fuse.js@7.0.0"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+    :root {
+      --glass: rgba(255,255,255,.78);
+      --line: rgba(148, 163, 184, .20);
+      --shadow: 0 20px 50px rgba(15, 23, 42, .10);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at 10% 20%, rgba(59,130,246,.14), transparent 28%),
+        radial-gradient(circle at 88% 15%, rgba(16,185,129,.12), transparent 24%),
+        radial-gradient(circle at 78% 80%, rgba(249,115,22,.10), transparent 20%),
+        linear-gradient(135deg, #f8fafc 0%, #eff6ff 48%, #f8fafc 100%);
+      background-attachment: fixed;
+      color: #0f172a;
+    }
+
+    .glass {
+      background: var(--glass);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+    }
+
+    .panel-title {
+      font-size: 1rem;
+      line-height: 1.5rem;
+      font-weight: 700;
+      color: #0f172a;
+    }
+
+    .fade-in {
+      animation: fadeIn .25s ease;
+    }
+
+    .pulse-soft {
+      animation: pulseSoft 2.3s infinite;
+    }
+
+    .floating {
+      animation: floating 7s ease-in-out infinite;
+    }
+
+    .card-hover {
+      transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease, background-color .18s ease;
+    }
+
+    .card-hover:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 14px 32px rgba(15,23,42,.10);
+      border-color: rgba(59,130,246,.20);
+    }
+
+    .custom-scroll::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+
+    .custom-scroll::-webkit-scrollbar-thumb {
+      background: rgba(148,163,184,.45);
+      border-radius: 999px;
+    }
+
+    .custom-scroll::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .metric-ring {
+      position: relative;
+      width: 180px;
+      height: 180px;
+      border-radius: 9999px;
+      background: conic-gradient(from 270deg, #2563eb 0deg, #10b981 130deg, #f59e0b 240deg, #ef4444 330deg, #2563eb 360deg);
+      padding: 10px;
+      margin: 0 auto;
+    }
+
+    .metric-ring::before {
+      content: "";
+      position: absolute;
+      inset: 10px;
+      border-radius: 9999px;
+      background: rgba(255,255,255,.95);
+      box-shadow: inset 0 0 0 1px rgba(148,163,184,.15);
+    }
+
+    .metric-content {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      text-align: center;
+      padding: 1rem;
+      z-index: 2;
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: .5rem;
+      padding: .55rem .9rem;
+      border-radius: 9999px;
+      font-weight: 700;
+      font-size: .95rem;
+      border: 1px solid transparent;
+    }
+
+    .skeleton {
+      background: linear-gradient(90deg, rgba(226,232,240,.85) 25%, rgba(241,245,249,.95) 37%, rgba(226,232,240,.85) 63%);
+      background-size: 400% 100%;
+      animation: shimmer 1.4s ease infinite;
+      border-radius: .75rem;
+    }
+
+    .history-active {
+      border-color: rgba(59,130,246,.35) !important;
+      background: rgba(239,246,255,.95) !important;
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 1.25fr .85fr;
+      gap: 1.5rem;
+    }
+
+    @media (max-width: 1280px) {
+      .hero-grid { grid-template-columns: 1fr; }
+    }
+
+    @keyframes shimmer {
+      0% { background-position: 100% 50%; }
+      100% { background-position: 0 50%; }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes pulseSoft {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(59,130,246,.08); }
+      50% { box-shadow: 0 0 0 12px rgba(59,130,246,0); }
+    }
+
+    @keyframes floating {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-5px); }
+    }
+  </style>
 </head>
-    <!-- Header -->
-    <header class="bg-white shadow-sm border-b border-gray-200">
-        <div class="container mx-auto px-4 py-6">
-            <div class="flex justify-between items-start">
-                <div>
-                    <h1 class="text-3xl font-bold text-gray-900" data-i18n="title">FISI 计算器</h1>
-                    <p class="text-gray-600 mt-2" data-i18n="subtitle">Food Inflammation Scores of Individuals - 食物炎症指数评估工具</p>
+<body>
+  <div class="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
+    <div class="absolute top-20 left-10 w-60 h-60 rounded-full bg-blue-300/20 blur-3xl floating"></div>
+    <div class="absolute bottom-24 right-10 w-72 h-72 rounded-full bg-emerald-300/20 blur-3xl floating" style="animation-delay:1s"></div>
+    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 w-[32rem] h-[32rem] rounded-full bg-cyan-200/10 blur-3xl"></div>
+  </div>
+
+  <header class="sticky top-0 z-30 border-b border-slate-200/70 bg-white/75 backdrop-blur-xl">
+    <div class="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8 py-4">
+      <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div class="flex items-start gap-4">
+          <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-600 to-cyan-500 text-white grid place-items-center shadow-lg">
+            <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0h4"></path>
+            </svg>
+          </div>
+          <div>
+            <div class="flex flex-wrap items-center gap-2">
+              <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900" data-i18n="title">FISI 计算器 </h1>
+              <span class="px-3 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700 border border-blue-200">FISI</span>
+              <span class="px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700 border border-emerald-200">History</span>
+            </div>
+            <p class="text-slate-600 mt-1" data-i18n="subtitle">Food Inflammation Scores of Individuals - 食物炎症指数评估工具</p>
+          </div>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-3">
+          <div class="hidden sm:flex items-center gap-2 px-3 py-2 rounded-xl border border-slate-200 bg-white/80">
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 pulse-soft"></span>
+            <span class="text-sm text-slate-600" data-i18n="headerHint">本地保存 · 历史回看 · 7条记录</span>
+          </div>
+          <button
+            id="langToggle"
+            class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-900 text-white hover:bg-slate-800 transition-all font-semibold shadow-sm"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.5 12m3.548 2.5L5 21m5.048-6.5L15 21m-4.952-6.5A18.022 18.022 0 0013.5 12m0 0A18.022 18.022 0 0017.5 5M13.5 12h7.5"></path>
+            </svg>
+            <span>EN / 中文</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
+    <div id="loading" class="glass rounded-3xl p-10 text-center">
+      <div class="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-blue-600 to-cyan-500 text-white grid place-items-center shadow-lg mb-4">
+        <svg class="w-8 h-8 animate-spin" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-20" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-90" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+        </svg>
+      </div>
+      <p class="text-slate-700 font-medium" data-i18n="loading">正在加载食物数据...</p>
+      <div class="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div class="h-28 skeleton"></div>
+        <div class="h-28 skeleton"></div>
+        <div class="h-28 skeleton"></div>
+      </div>
+    </div>
+
+    <div id="app" class="hidden space-y-6">
+      <section class="hero-grid">
+        <div class="glass rounded-3xl p-6 lg:p-7 overflow-hidden relative">
+          <div class="absolute inset-0 bg-gradient-to-br from-blue-50/70 via-transparent to-cyan-50/60 pointer-events-none"></div>
+          <div class="relative z-10">
+            <div class="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
+              <div class="max-w-3xl">
+                <p class="text-xs font-bold uppercase tracking-[0.18em] text-blue-700/80 mb-2" data-i18n="heroEyebrow">Nutrition Intelligence</p>
+                <h2 class="text-3xl lg:text-4xl font-extrabold leading-tight text-slate-900" data-i18n="heroTitle">搜索食物、计算 FISI、保存并回看每日食谱</h2>
+                <p class="mt-3 text-slate-600 max-w-2xl" data-i18n="heroText">输入食物名称或代码，添加摄入量后自动累计 FISI。支持本地历史记录、图表趋势和单次食谱回填查看。</p>
+              </div>
+
+              <div class="grid grid-cols-2 gap-3 min-w-full xl:min-w-[360px] xl:max-w-[420px]">
+                <div class="rounded-2xl border border-white/80 bg-white/80 p-4 shadow-sm">
+                  <p class="text-xs font-semibold text-slate-500" data-i18n="heroMetric1Label">已加载数据</p>
+                  <p class="text-2xl font-extrabold text-slate-900 mt-1"><span id="foodCount">0</span></p>
+                  <p class="text-xs text-slate-500 mt-1" data-i18n="foodCountUnit">种食物数据</p>
                 </div>
+                <div class="rounded-2xl border border-white/80 bg-white/80 p-4 shadow-sm">
+                  <p class="text-xs font-semibold text-slate-500" data-i18n="heroMetric2Label">历史记录</p>
+                  <p class="text-2xl font-extrabold text-slate-900 mt-1"><span id="historyCount">0</span></p>
+                  <p class="text-xs text-slate-500 mt-1" data-i18n="heroMetric2Hint">最多保留 7 条</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="mt-6">
+              <label class="block text-sm font-semibold text-slate-700 mb-2" data-i18n="searchLabel">搜索食物</label>
+              <div class="relative">
+                <input
+                  type="text"
+                  id="searchInput"
+                  data-i18n-placeholder="searchPlaceholder"
+                  placeholder="输入食物名称或代码（如：milk, chicken, rice）"
+                  class="w-full pl-12 pr-4 py-4 rounded-2xl border border-slate-200 bg-white/90 outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-400 text-slate-900 placeholder:text-slate-400"
+                />
+                <svg class="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m21 21-4.35-4.35m1.85-5.15a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                </svg>
+              </div>
+              <p class="mt-3 text-sm text-slate-500" data-i18n="searchTip">支持模糊搜索，建议输入 2 个以上字符。</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="glass rounded-3xl p-6 lg:p-7">
+          <div class="flex items-center justify-between gap-3">
+            <div>
+              <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-500 mb-1" data-i18n="fisiTotal">FISI 总分</p>
+              <h3 class="text-lg font-bold text-slate-900" data-i18n="dashboardTitle">实时评估面板</h3>
+            </div>
+            <button
+              id="saveRecordBtn"
+              class="hidden inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 transition-all font-semibold shadow-sm"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+              </svg>
+              <span data-i18n="saveRecord">保存本次记录</span>
+            </button>
+          </div>
+
+          <div class="mt-6">
+            <div class="metric-ring">
+              <div class="metric-content">
+                <p class="text-xs uppercase tracking-[0.18em] text-slate-500 font-bold">FISI</p>
+                <div id="fisiDisplay" class="mt-1 text-4xl font-extrabold text-slate-900">0.00</div>
+                <p class="mt-2 text-xs text-slate-500" id="recipeViewLabel">Today's View</p>
+              </div>
+            </div>
+
+            <div class="mt-5 text-center">
+              <span id="statusBadge" class="status-pill bg-slate-100 text-slate-500 border-slate-200">
+                <span class="w-2.5 h-2.5 rounded-full bg-slate-400"></span>
+                <span data-i18n="noFood">未添加食物</span>
+              </span>
+            </div>
+          </div>
+
+          <div class="mt-6 grid grid-cols-3 gap-3">
+            <div class="rounded-2xl border border-slate-200 bg-white/80 p-3">
+              <p class="text-xs text-slate-500 font-semibold" data-i18n="statFoods">食物数</p>
+              <p id="statFoodCount" class="text-xl font-extrabold text-slate-900 mt-1">0</p>
+            </div>
+            <div class="rounded-2xl border border-slate-200 bg-white/80 p-3">
+              <p class="text-xs text-slate-500 font-semibold" data-i18n="statAmount">总克数</p>
+              <p id="statTotalAmount" class="text-xl font-extrabold text-slate-900 mt-1">0g</p>
+            </div>
+            <div class="rounded-2xl border border-slate-200 bg-white/80 p-3">
+              <p class="text-xs text-slate-500 font-semibold" data-i18n="statHistory">记录数</p>
+              <p id="statHistory" class="text-xl font-extrabold text-slate-900 mt-1">0</p>
+            </div>
+          </div>
+
+          <div class="mt-5 rounded-2xl border border-blue-100 bg-blue-50/90 p-4 text-sm text-slate-700">
+            <p class="font-semibold mb-2" data-i18n="criteria">判定标准：</p>
+            <div id="criteriaBox">
+              <p data-i18n="criteriaText1">• FISI ≥ -6.85：</p>
+              <p data-i18n="criteriaText2">• FISI &lt; -6.85：</p>
+              <p class="mt-2 text-xs text-slate-500" data-i18n="formula">计算公式：FISI = Σ(摄入量/100 × FII)</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="grid grid-cols-1 2xl:grid-cols-[1.25fr_1fr_1fr] xl:grid-cols-[1.2fr_1fr] gap-6">
+        <div class="space-y-6">
+          <div id="recommendedFoods" class="glass rounded-3xl p-6">
+            <div class="flex items-center justify-between gap-3 mb-4">
+              <div>
+                <h3 class="panel-title" data-i18n="recommended">高FII分数食物推荐</h3>
+                <p class="text-sm text-slate-500 mt-1" data-i18n="recommendedHint">这些食物的 FII 分数较高，可作为搜索与搭配参考。</p>
+              </div>
+              <span class="px-3 py-1 rounded-full text-xs font-semibold bg-orange-100 text-orange-700 border border-orange-200">Top Picks</span>
+            </div>
+            <div id="scrollContent" class="grid sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2 gap-3 custom-scroll max-h-[620px] overflow-y-auto pr-1"></div>
+          </div>
+
+          <div id="searchResults" class="glass rounded-3xl p-6 hidden">
+            <div class="flex items-center justify-between gap-3 mb-4">
+              <div>
+                <h3 class="panel-title" data-i18n="searchResults">搜索结果</h3>
+                <p class="text-sm text-slate-500" data-i18n="searchResultsHint">点击任一食物以输入摄入量。</p>
+              </div>
+              <span id="resultsCountBadge" class="px-3 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700 border border-blue-200">0 Results</span>
+            </div>
+            <div id="resultsList" class="grid gap-3 custom-scroll max-h-[640px] overflow-y-auto pr-1"></div>
+          </div>
+        </div>
+
+        <div class="space-y-6">
+          <div class="glass rounded-3xl p-6">
+            <div class="flex items-center justify-between gap-3 mb-4">
+              <div>
+                <h3 id="recipeTitle" class="panel-title" data-i18n="todayRecipe">今日食谱</h3>
+                <p class="text-sm text-slate-500" data-i18n="recipeHint">你当前加入的食物会在这里累计显示。</p>
+              </div>
+              <button
+                id="clearAllBtn"
+                class="hidden px-3.5 py-2 rounded-xl text-sm font-semibold border border-red-200 bg-red-50 text-red-700 hover:bg-red-100 transition-all"
+                data-i18n="clearAll"
+              >
+                清空全部
+              </button>
+            </div>
+
+            <div id="foodList" class="grid gap-3 custom-scroll max-h-[760px] overflow-y-auto pr-1">
+              <p class="text-slate-400 text-center py-10" data-i18n="noFoodInList">暂无食物</p>
+            </div>
+          </div>
+
+          <div id="foodInputModal" class="hidden glass rounded-3xl p-6 fade-in">
+            <div class="flex items-center justify-between gap-3 mb-4">
+              <div>
+                <h3 class="panel-title" data-i18n="addFood">添加食物</h3>
+                <p class="text-sm text-slate-500" data-i18n="modalHint">输入本次摄入量后加入食谱。</p>
+              </div>
+              <button id="cancelBtnTop" class="text-slate-400 hover:text-slate-700 transition-colors">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+              </button>
+            </div>
+
+            <div class="grid gap-4">
+              <div class="rounded-2xl border border-slate-200 bg-white/80 p-4">
+                <p class="text-xs font-semibold text-slate-500 mb-1" data-i18n="foodName">食物名称</p>
+                <p id="selectedFoodName" class="text-base font-bold text-slate-900"></p>
+              </div>
+
+              <div class="rounded-2xl border border-slate-200 bg-white/80 p-4">
+                <p class="text-xs font-semibold text-slate-500 mb-1" data-i18n="fiiValue">FII 值</p>
+                <p id="selectedFoodFII" class="text-base font-bold text-slate-900"></p>
+              </div>
+
+              <div>
+                <label for="amountInput" class="block text-sm font-semibold text-slate-700 mb-2" data-i18n="amount">摄入量（克）</label>
+                <input
+                  type="number"
+                  id="amountInput"
+                  data-i18n-placeholder="amountPlaceholder"
+                  min="0"
+                  step="1"
+                  placeholder="请输入摄入量"
+                  class="w-full px-4 py-3 rounded-2xl border border-slate-200 bg-white/90 outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-400"
+                />
+              </div>
+
+              <div class="grid grid-cols-2 gap-3">
                 <button
-                    id="langToggle"
-                    class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm"
+                  id="addFoodBtn"
+                  class="w-full py-3 rounded-2xl bg-blue-600 text-white hover:bg-blue-700 transition-all font-semibold shadow-sm"
+                  data-i18n="addToRecipe"
                 >
-                    EN / 中文
+                  添加到食谱
                 </button>
+                <button
+                  id="cancelBtn"
+                  class="w-full py-3 rounded-2xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition-all font-semibold"
+                  data-i18n="cancel"
+                >
+                  取消
+                </button>
+              </div>
             </div>
-        </div>
-    </header>
-
-    <!-- Main Content -->
-    <main class="container mx-auto px-4 py-8">
-        <div id="loading" class="text-center py-12">
-            <div class="spinner mx-auto"></div>
-            <p class="mt-4 text-gray-600">正在加载食物数据...</p>
+          </div>
         </div>
 
-        <div id="app" class="hidden">
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <!-- Left Panel: Search -->
-                <div class="lg:col-span-2 space-y-4">
-                    <!-- Search Bar -->
-                    <div class="bg-white rounded-lg shadow-md p-6">
-                        <label class="block text-sm font-medium text-gray-700 mb-2" data-i18n="searchLabel">搜索食物</label>
-                        <input 
-                            type="text" 
-                            id="searchInput"
-                            data-i18n-placeholder="searchPlaceholder"
-                            placeholder="输入食物名称或代码（如：milk, chicken, rice）"
-                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-                        />
-                        <p class="text-xs text-gray-500 mt-2">已加载 <span id="foodCount">0</span> 种食物数据</p>
-                    </div>
-
-                    <!-- Recommended Foods (High FII Score) -->
-                    <div id="recommendedFoods" class="bg-white rounded-lg shadow-md p-6">
-                        <h3 class="text-lg font-semibold text-gray-900 mb-4" data-i18n="recommended">高FII分数食物推荐</h3>
-                        <div class="h-96 overflow-hidden relative">
-                            <div id="scrollContainer" class="overflow-y-auto h-full">
-                                <div id="scrollContent" class="space-y-2">
-                                    <!-- 推荐食物将在这里动态加载 -->
-                                </div>
-                            </div>
-                        </div>
-                        <p class="text-xs text-gray-500 mt-3 text-center" data-i18n="recommendedHint">这些食物的FII分数较高，可能具有抗炎作用</p>
-                    </div>
-
-                    <!-- Search Results -->
-                    <div id="searchResults" class="bg-white rounded-lg shadow-md p-6 hidden">
-                        <h3 class="text-lg font-semibold text-gray-900 mb-4" data-i18n="searchResults">搜索结果</h3>
-                        <div id="resultsList" class="space-y-2 max-h-96 overflow-y-auto"></div>
-                    </div>
-
-                    <!-- Food Input Modal -->
-                    <div id="foodInputModal" class="bg-white rounded-lg shadow-md p-6 hidden fade-in">
-                        <h3 class="text-lg font-semibold text-gray-900 mb-4" data-i18n="addFood">添加食物</h3>
-                        <div class="space-y-4">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1" data-i18n="foodName">食物名称</label>
-                                <p id="selectedFoodName" class="text-gray-900 font-medium"></p>
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1" data-i18n="fiiValue">FII 值</label>
-                                <p id="selectedFoodFII" class="text-gray-600"></p>
-                            </div>
-                            <div>
-                                <label for="amountInput" class="block text-sm font-medium text-gray-700 mb-1" data-i18n="amount">
-                                    摄入量（克）
-                                </label>
-                                <input 
-                                    type="number" 
-                                    id="amountInput"
-                                    data-i18n-placeholder="amountPlaceholder"
-                                    min="0"
-                                    step="1"
-                                    placeholder="请输入摄入量"
-                                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                                />
-                            </div>
-                            <div class="flex gap-3">
-                                <button 
-                                    id="addFoodBtn"
-                                    class="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium"
-                                    data-i18n="addToRecipe"
-                                >
-                                    添加到食谱
-                                </button>
-                                <button 
-                                    id="cancelBtn"
-                                    class="flex-1 bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors font-medium"
-                                    data-i18n="cancel"
-                                >
-                                    取消
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Right Panel: Dashboard & Food List -->
-                <div class="space-y-4">
-                    <!-- Dashboard -->
-                    <div class="bg-white rounded-lg shadow-lg p-6">
-                        <h2 class="text-xl font-bold text-gray-800 mb-4" data-i18n="fisiTotal">FISI 总分</h2>
-                        <div id="fisiDisplay" class="text-6xl font-bold text-center py-8 rounded-lg bg-gray-100 text-gray-400">
-                            0.00
-                        </div>
-                        <div class="mt-4 text-center">
-                            <span id="statusBadge" class="inline-block px-4 py-2 rounded-full text-lg font-semibold bg-gray-100 text-gray-400">
-                                未添加食物
-                            </span>
-                        </div>
-                        <div class="mt-4 text-sm text-gray-600 bg-blue-50 p-3 rounded-lg">
-                            <p class="font-medium mb-1">判定标准：</p>
-                            <p>• FISI &ge; -6.85：促炎 (Pro-inflammatory)</p>
-                            <p>• FISI &lt; -6.85：抗炎 (Anti-inflammatory)</p>
-                            <p class="mt-2 text-xs text-gray-500">计算公式：FISI = Σ(摄入量/100 × FII)</p>
-                        </div>
-                        <button
-                            id="saveRecordBtn"
-                            class="w-full mt-4 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors font-medium hidden"
-                            data-i18n="saveRecord"
-                        >
-                            保存本次记录
-                        </button>
-                    </div>
-
-                    <!-- Food List -->
-                    <div class="bg-white rounded-lg shadow-md p-6">
-                        <div class="flex justify-between items-center mb-4">
-                            <h3 class="text-lg font-semibold text-gray-900" data-i18n="todayRecipe">今日食谱</h3>
-                            <button
-                                id="clearAllBtn"
-                                class="text-sm text-red-600 hover:text-red-700 font-medium hidden"
-                                data-i18n="clearAll"
-                            >
-                                清空全部
-                            </button>
-                        </div>
-                        <div id="foodList" class="space-y-3 max-h-48 overflow-y-auto">
-                            <p class="text-gray-400 text-center py-8">暂无食物</p>
-                        </div>
-                    </div>
-
-                    <!-- History Chart -->
-                    <div id="historySection" class="bg-white rounded-lg shadow-md p-6 hidden">
-                        <div class="flex justify-between items-center mb-4">
-                            <h3 class="text-lg font-semibold text-gray-900" data-i18n="historyTitle">FISI历史记录</h3>
-                            <button
-                                id="clearHistoryBtn"
-                                class="text-sm text-red-600 hover:text-red-700 font-medium"
-                                data-i18n="clearHistory"
-                            >
-                                清空历史
-                            </button>
-                        </div>
-                        <canvas id="historyChart" class="w-full" height="200"></canvas>
-                    </div>
-                </div>
+        <div class="space-y-6 xl:col-span-2 2xl:col-span-1">
+          <div id="historySection" class="glass rounded-3xl p-6 hidden">
+            <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+              <div>
+                <h3 class="panel-title" data-i18n="historyTitle">FISI历史记录</h3>
+                <p class="text-sm text-slate-500" data-i18n="historyHint">保留最近 7 条记录，可展开详情并加载到当前食谱区。</p>
+              </div>
+              <button
+                id="clearHistoryBtn"
+                class="px-3.5 py-2 rounded-xl text-sm font-semibold border border-red-200 bg-red-50 text-red-700 hover:bg-red-100 transition-all"
+                data-i18n="clearHistory"
+              >
+                清空历史
+              </button>
             </div>
+
+            <div class="rounded-2xl border border-slate-200 bg-white/85 p-4" style="height: 290px;">
+              <canvas id="historyChart"></canvas>
+            </div>
+
+            <div class="mt-5">
+              <div class="flex items-center justify-between mb-3">
+                <h4 class="text-sm font-bold text-slate-700" data-i18n="historyListTitle">历史食谱</h4>
+                <span class="text-xs text-slate-500" data-i18n="historyListHint">点击“加载”即可回看该次记录</span>
+              </div>
+              <div id="historyList" class="grid gap-3 custom-scroll max-h-[580px] overflow-y-auto pr-1"></div>
+            </div>
+          </div>
+
+          <div class="glass rounded-3xl p-6">
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <h3 class="panel-title" data-i18n="usageTitle">使用说明</h3>
+                <p class="text-sm text-slate-500 mt-1" data-i18n="usageHint">三步完成一次记录。</p>
+              </div>
+              <span class="px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200">Guide</span>
+            </div>
+            <div class="mt-4 grid gap-3">
+              <div class="rounded-2xl border border-slate-200 bg-white/80 p-4">
+                <p class="font-semibold text-slate-900">1. <span data-i18n="usageStep1">搜索并选择食物</span></p>
+                <p class="text-sm text-slate-500 mt-1" data-i18n="usageStep1Desc">支持输入名称或代码，点击结果后填入克数。</p>
+              </div>
+              <div class="rounded-2xl border border-slate-200 bg-white/80 p-4">
+                <p class="font-semibold text-slate-900">2. <span data-i18n="usageStep2">查看实时 FISI</span></p>
+                <p class="text-sm text-slate-500 mt-1" data-i18n="usageStep2Desc">系统会自动累计每项贡献值并更新状态。</p>
+              </div>
+              <div class="rounded-2xl border border-slate-200 bg-white/80 p-4">
+                <p class="font-semibold text-slate-900">3. <span data-i18n="usageStep3">保存和回看历史</span></p>
+                <p class="text-sm text-slate-500 mt-1" data-i18n="usageStep3Desc">历史记录支持图表、详情和再次加载食谱。</p>
+              </div>
+            </div>
+          </div>
         </div>
-    </main>
+      </section>
+    </div>
+  </main>
 
-    <!-- Footer -->
-    <footer class="bg-white border-t border-gray-200 mt-12">
-        <div class="container mx-auto px-4 py-6 text-center text-gray-600 text-sm">
-            <p data-i18n="footerText1">FISI 计算器 - 基于9931种食物的炎症指数数据</p>
-            <p class="mt-1" data-i18n="footerText2">仅供参考，不构成医疗建议</p>
-        </div>
-    </footer>
+  <footer class="mt-8 border-t border-slate-200/80 bg-white/70 backdrop-blur-xl">
+    <div class="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8 py-6 text-center text-slate-500 text-sm">
+      <p data-i18n="footerText1">FISI 计算器 - 基于9931种食物的炎症指数数据</p>
+      <p class="mt-1" data-i18n="footerText2">仅供参考，不构成医疗建议</p>
+    </div>
+  </footer>
 
-    <script>
-        // 全局状态
-        let foodsData = [];
-        let fuse = null;
-        let selectedFoods = [];
-        let selectedFood = null;
-        let currentLang = 'zh'; // 默认中文
-        let fisiHistory = JSON.parse(localStorage.getItem('fisiHistory') || '[]');
-        let historyChart = null;
+  <script>
+    let foodsData = [];
+    let fuse = null;
+    let selectedFoods = [];
+    let selectedFood = null;
+    let currentLang = 'en';
+    let fisiHistory = JSON.parse(localStorage.getItem('fisiHistory') || '[]');
+    let historyChart = null;
+    let activeRecipeDate = null;
+    const HISTORY_LIMIT = 7;
 
-        // 多语言文本
-        const i18n = {
-            zh: {
-                title: 'FISI 计算器',
-                subtitle: 'Food Inflammation Scores of Individuals - 食物炎症指数计算工具',
-                searchLabel: '搜索食物',
-                searchPlaceholder: '输入食物名称或代码（如：milk, chicken, rice）',
-                foodCount: '已加载',
-                foodCountUnit: '种食物数据',
-                recommended: '高FII分数食物推荐',
-                recommendedHint: '这些食物的FII分数较高，可能具有抗炎作用',
-                searchResults: '搜索结果',
-                addFood: '添加食物',
-                foodName: '食物名称',
-                fiiValue: 'FII 值',
-                amount: '摄入量（克）',
-                amountPlaceholder: '请输入摄入量',
-                addToRecipe: '添加到食谱',
-                cancel: '取消',
-                fisiTotal: 'FISI 总分',
-                noFood: '未添加食物',
-                criteria: '判定标准：',
-                proInflammatory: '促炎 (Pro-inflammatory)',
-                antiInflammatory: '抗炎 (Anti-inflammatory)',
-                formula: '计算公式：FISI = Σ(摄入量/100 × FII)',
-                todayRecipe: '今日食谱',
-                clearAll: '清空全部',
-                noFoodInList: '暂无食物',
-                intake: '摄入量',
-                contribution: '贡献值',
-                loading: '正在加载食物数据...',
-                loadError: '加载失败',
-                noMatch: '未找到匹配的食物',
-                foodCode: '代码',
-                saveRecord: '保存本次记录',
-                historyTitle: 'FISI历史记录',
-                clearHistory: '清空历史',
-                footerText1: 'FISI 计算器 - 基于9931种食物的炎症指数数据',
-                footerText2: '仅供参考，不构成医疗建议',
-                criteriaText1: '• FISI ≥ -6.85：',
-                criteriaText2: '• FISI < -6.85：',
-                fii: 'FII',
-                recordSaved: '记录已保存！',
-                confirmClearHistory: '确定要清空所有历史记录吗？',
-                invalidAmount: '请输入有效的摄入量',
-                confirmClearAll: '确定要清空所有食物吗？' 
+    const i18n = {
+      zh: {
+        title: 'FISI 计算器',
+        subtitle: 'Food Inflammation Scores of Individuals - 食物炎症指数评估工具',
+        headerHint: '本地保存 · 历史回看 · 7条记录',
+        heroEyebrow: 'Nutrition Intelligence',
+        heroTitle: '搜索食物、计算 FISI、保存并回看每日食谱',
+        heroText: '输入食物名称或代码，添加摄入量后自动累计 FISI。支持本地历史记录、图表趋势和单次食谱回填查看。',
+        heroMetric1Label: '已加载数据',
+        heroMetric2Label: '历史记录',
+        heroMetric2Hint: '最多保留 7 条',
+        searchLabel: '搜索食物',
+        searchPlaceholder: '输入食物名称或代码（如：milk, chicken, rice）',
+        searchTip: '支持模糊搜索，建议输入 2 个以上字符。',
+        recommended: '高FII分数食物推荐',
+        recommendedHint: '这些食物的 FII 分数较高，可作为搜索与搭配参考。',
+        searchResults: '搜索结果',
+        searchResultsHint: '点击任一食物以输入摄入量。',
+        addFood: '添加食物',
+        modalHint: '输入本次摄入量后加入食谱。',
+        foodName: '食物名称',
+        fiiValue: 'FII 值',
+        amount: '摄入量（克）',
+        amountPlaceholder: '请输入摄入量',
+        addToRecipe: '添加到食谱',
+        cancel: '取消',
+        fisiTotal: 'FISI 总分',
+        dashboardTitle: '实时评估面板',
+        noFood: '未添加食物',
+        criteria: '判定标准：',
+        proInflammatory: '促炎',
+        antiInflammatory: '抗炎',
+        formula: '计算公式：FISI = Σ(摄入量/100 × FII)',
+        todayRecipe: '今日食谱',
+        recipeHint: '你当前加入的食物会在这里累计显示。',
+        clearAll: '清空全部',
+        noFoodInList: '暂无食物',
+        intake: '摄入量',
+        contribution: '贡献值',
+        loading: '正在加载食物数据...',
+        loadError: '加载失败',
+        noMatch: '未找到匹配的食物',
+        foodCode: '代码',
+        saveRecord: '保存本次记录',
+        historyTitle: 'FISI历史记录',
+        historyHint: '保留最近 7 条记录，可展开详情并加载到当前食谱区。',
+        historyListTitle: '历史食谱',
+        historyListHint: '点击“加载”即可回看该次记录',
+        clearHistory: '清空历史',
+        footerText1: 'FISI 计算器 - 基于9931种食物的炎症指数数据',
+        footerText2: '仅供参考，不构成医疗建议',
+        criteriaText1: '• FISI ≥ -6.85：',
+        criteriaText2: '• FISI < -6.85：',
+        fii: 'FII',
+        recordSaved: '记录已保存！',
+        confirmClearHistory: '确定要清空所有历史记录吗？',
+        invalidAmount: '请输入有效的摄入量',
+        confirmClearAll: '确定要清空所有食物吗？',
+        viewToday: '当前为今日编辑视图',
+        viewingRecord: '正在查看历史记录：',
+        load: '加载',
+        details: '详情',
+        delete: '删除',
+        foods: '种食物',
+        noHistoryRecords: '暂无历史记录',
+        statFoods: '食物数',
+        statAmount: '总克数',
+        statHistory: '记录数',
+        usageTitle: '使用说明',
+        usageHint: '三步完成一次记录。',
+        usageStep1: '搜索并选择食物',
+        usageStep1Desc: '支持输入名称或代码，点击结果后填入克数。',
+        usageStep2: '查看实时 FISI',
+        usageStep2Desc: '系统会自动累计每项贡献值并更新状态。',
+        usageStep3: '保存和回看历史',
+        usageStep3Desc: '历史记录支持图表、详情和再次加载食谱。',
+        antiDesc: '抗炎倾向',
+        proDesc: '促炎倾向',
+        neutralDesc: '接近阈值',
+        contributionShort: '贡献',
+        resultsUnit: '条结果',
+        recordTime: '记录时间'
+      },
+      en: {
+        title: 'FISI Calculator',
+        subtitle: 'Food Inflammation Scores of Individuals - Food Inflammation Score Tool',
+        headerHint: 'Saved locally · History recall · 7 records',
+        heroEyebrow: 'Nutrition Intelligence',
+        heroTitle: 'Search foods, calculate FISI, save and reload meal records',
+        heroText: 'Search by food name or code, add intake amount, and track FISI in real time. Includes local history, charts, and meal recall.',
+        heroMetric1Label: 'Loaded Data',
+        heroMetric2Label: 'History',
+        heroMetric2Hint: 'Keep latest 7',
+        searchLabel: 'Search Food',
+        searchPlaceholder: 'Enter food name or code (e.g., milk, chicken, rice)',
+        searchTip: 'Fuzzy search supported. Use at least 2 characters.',
+        recommended: 'High FII Foods',
+        recommendedHint: 'Foods with higher FII scores, useful as references for search and meal planning.',
+        searchResults: 'Search Results',
+        searchResultsHint: 'Click any food to enter intake amount.',
+        addFood: 'Add Food',
+        modalHint: 'Enter intake amount and add it to the recipe.',
+        foodName: 'Food Name',
+        fiiValue: 'FII Value',
+        amount: 'Amount (grams)',
+        amountPlaceholder: 'Enter amount',
+        addToRecipe: 'Add to Recipe',
+        cancel: 'Cancel',
+        fisiTotal: 'FISI Total',
+        dashboardTitle: 'Live Assessment Panel',
+        noFood: 'No food added',
+        criteria: 'Criteria:',
+        proInflammatory: 'Pro-inflammatory',
+        antiInflammatory: 'Anti-inflammatory',
+        formula: 'Formula: FISI = Σ(amount/100 × FII)',
+        todayRecipe: "Today's Recipe",
+        recipeHint: 'Foods you add will accumulate here.',
+        clearAll: 'Clear All',
+        noFoodInList: 'No food added',
+        intake: 'Intake',
+        contribution: 'Contribution',
+        loading: 'Loading food data...',
+        loadError: 'Load failed',
+        noMatch: 'No matching food found',
+        foodCode: 'Code',
+        saveRecord: 'Save Record',
+        historyTitle: 'FISI History',
+        historyHint: 'Keeps the latest 7 records. Expand details or load a record back into the recipe panel.',
+        historyListTitle: 'History Recipes',
+        historyListHint: 'Click "Load" to review that saved record',
+        clearHistory: 'Clear History',
+        footerText1: 'FISI Calculator - Based on 9931 food inflammation index data',
+        footerText2: 'For reference only, not medical advice',
+        criteriaText1: '• FISI ≥ -6.85: ',
+        criteriaText2: '• FISI < -6.85: ',
+        fii: 'FII',
+        recordSaved: 'Record saved!',
+        confirmClearHistory: 'Are you sure you want to clear all history?',
+        invalidAmount: 'Please enter a valid amount',
+        confirmClearAll: 'Are you sure you want to clear all foods?',
+        viewToday: 'Currently editing today’s recipe',
+        viewingRecord: 'Viewing history record:',
+        load: 'Load',
+        details: 'Details',
+        delete: 'Delete',
+        foods: 'foods',
+        noHistoryRecords: 'No history records',
+        statFoods: 'Foods',
+        statAmount: 'Total grams',
+        statHistory: 'Records',
+        usageTitle: 'How to Use',
+        usageHint: 'Three steps to finish one record.',
+        usageStep1: 'Search and choose food',
+        usageStep1Desc: 'Search by food name or code, then enter grams.',
+        usageStep2: 'Watch live FISI',
+        usageStep2Desc: 'Each food contribution updates the score and status instantly.',
+        usageStep3: 'Save and review history',
+        usageStep3Desc: 'History supports chart trends, details, and recipe reload.',
+        antiDesc: 'Anti-inflammatory trend',
+        proDesc: 'Pro-inflammatory trend',
+        neutralDesc: 'Close to threshold',
+        contributionShort: 'Contr.',
+        resultsUnit: 'results',
+        recordTime: 'Recorded at'
+      }
+    };
+
+    function safeNumber(value, fallback = 0) {
+      const num = Number(value);
+      return Number.isFinite(num) ? num : fallback;
+    }
+
+    function formatDateTime(dateString) {
+      return new Date(dateString).toLocaleString(currentLang === 'zh' ? 'zh-CN' : 'en-US', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+      });
+    }
+
+    function getCriteriaHTML() {
+      const texts = i18n[currentLang];
+      return `
+        <p>${texts.criteriaText1}${texts.proInflammatory}</p>
+        <p>${texts.criteriaText2}${texts.antiInflammatory}</p>
+        <p class="mt-2 text-xs text-slate-500">${texts.formula}</p>
+      `;
+    }
+
+    function updateLanguage() {
+      const texts = i18n[currentLang];
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (texts[key]) el.textContent = texts[key];
+      });
+      document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+        const key = el.getAttribute('data-i18n-placeholder');
+        if (texts[key]) el.placeholder = texts[key];
+      });
+
+      const loadingText = document.querySelector('#loading p');
+      if (loadingText) loadingText.textContent = texts.loading;
+
+      const criteriaBox = document.getElementById('criteriaBox');
+      if (criteriaBox) criteriaBox.innerHTML = getCriteriaHTML();
+
+      updateRecipeTitle();
+      updateFoodList();
+      updateDashboard();
+      renderHistoryList();
+      updateHistoryChart();
+      displayRecommendedFoods();
+    }
+
+    function getTopFoodFii(food) {
+      if (Number.isFinite(Number(food.FII_score))) return Number(food.FII_score);
+      if (Number.isFinite(Number(food.FII))) return Number(food.FII);
+      return -Infinity;
+    }
+
+    function displayRecommendedFoods() {
+      const container = document.getElementById('scrollContent');
+      if (!container) return;
+
+      const topFoods = [...foodsData]
+        .filter(food => Number.isFinite(Number(food.FII)))
+        .sort((a, b) => getTopFoodFii(b) - getTopFoodFii(a))
+        .slice(0, 18);
+
+      container.innerHTML = topFoods.map(food => {
+        const fii = safeNumber(food.FII);
+        const badgeClass = fii < 0 ? 'bg-emerald-100 text-emerald-700 border-emerald-200' : 'bg-rose-100 text-rose-700 border-rose-200';
+        return `
+          <button
+            type="button"
+            onclick="selectFood('${String(food.Food_code).replace(/'/g, "\\'")}')"
+            class="card-hover text-left p-4 rounded-2xl border border-slate-200 bg-white/85 w-full"
+          >
+            <div class="flex items-start justify-between gap-4">
+              <div class="min-w-0">
+                <p class="font-semibold text-slate-900 leading-6">${food.Main_food_description || '-'}</p>
+                <p class="text-xs text-slate-500 mt-1">${i18n[currentLang].foodCode}: ${food.Food_code ?? '-'}</p>
+              </div>
+              <span class="shrink-0 px-3 py-1 rounded-full text-xs font-semibold border ${badgeClass}">
+                FII ${fii.toFixed(4)}
+              </span>
+            </div>
+          </button>
+        `;
+      }).join('');
+    }
+
+    async function init() {
+      try {
+        const response = await fetch('data/foods.json');
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        foodsData = await response.json();
+        document.getElementById('foodCount').textContent = foodsData.length.toLocaleString();
+
+        fuse = new Fuse(foodsData, {
+          keys: [
+            { name: 'Main_food_description', weight: 0.7 },
+            { name: 'Food_code', weight: 0.3 }
+          ],
+          threshold: 0.35,
+          minMatchCharLength: 2,
+          includeScore: true
+        });
+
+        displayRecommendedFoods();
+        initHistoryChart();
+        renderHistoryList();
+        updateDashboard();
+        bindEvents();
+
+        document.getElementById('loading').classList.add('hidden');
+        document.getElementById('app').classList.remove('hidden');
+      } catch (error) {
+        console.error('加载数据失败:', error);
+        document.getElementById('loading').innerHTML = `
+          <div class="text-red-600">
+            <div class="w-16 h-16 mx-auto rounded-2xl bg-red-100 text-red-600 grid place-items-center mb-4">
+              <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+            </div>
+            <p class="text-xl font-semibold mb-2">${i18n[currentLang].loadError}</p>
+            <p>请确保 "data/foods.json" 文件存在</p>
+            <p class="text-sm mt-2 text-slate-600">错误信息: ${error.message}</p>
+          </div>
+        `;
+      }
+    }
+
+    function bindEvents() {
+      const searchInput = document.getElementById('searchInput');
+      let debounceTimer;
+
+      searchInput.addEventListener('input', (e) => {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => handleSearch(e.target.value), 250);
+      });
+
+      document.getElementById('addFoodBtn').addEventListener('click', handleAddFood);
+      document.getElementById('cancelBtn').addEventListener('click', hideInputModal);
+      document.getElementById('cancelBtnTop').addEventListener('click', hideInputModal);
+      document.getElementById('clearAllBtn').addEventListener('click', clearAllFoods);
+      document.getElementById('saveRecordBtn').addEventListener('click', saveRecord);
+      document.getElementById('clearHistoryBtn').addEventListener('click', clearHistory);
+
+      document.getElementById('langToggle').addEventListener('click', () => {
+        currentLang = currentLang === 'zh' ? 'en' : 'zh';
+        updateLanguage();
+      });
+
+      document.getElementById('amountInput').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') handleAddFood();
+      });
+
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') hideInputModal();
+      });
+    }
+
+    function handleSearch(query) {
+      const resultsContainer = document.getElementById('searchResults');
+      const resultsList = document.getElementById('resultsList');
+      const recommendedContainer = document.getElementById('recommendedFoods');
+      const resultsCountBadge = document.getElementById('resultsCountBadge');
+
+      if (!query || query.trim().length < 2) {
+        resultsContainer.classList.add('hidden');
+        recommendedContainer.classList.remove('hidden');
+        resultsCountBadge.textContent = `0 ${i18n[currentLang].resultsUnit}`;
+        return;
+      }
+
+      recommendedContainer.classList.add('hidden');
+      const results = fuse.search(query.trim()).slice(0, 12);
+
+      if (results.length === 0) {
+        resultsList.innerHTML = `<p class="text-slate-400 text-center py-6">${i18n[currentLang].noMatch}</p>`;
+        resultsContainer.classList.remove('hidden');
+        resultsCountBadge.textContent = `0 ${i18n[currentLang].resultsUnit}`;
+        return;
+      }
+
+      resultsCountBadge.textContent = `${results.length} ${i18n[currentLang].resultsUnit}`;
+      resultsList.innerHTML = results.map(({ item }) => {
+        const fii = safeNumber(item.FII);
+        const badgeClass = fii < 0 ? 'bg-emerald-100 text-emerald-700 border-emerald-200' : 'bg-rose-100 text-rose-700 border-rose-200';
+        return `
+          <button
+            type="button"
+            onclick="selectFood('${String(item.Food_code).replace(/'/g, "\\'")}')"
+            class="card-hover text-left p-4 rounded-2xl border border-slate-200 bg-white/85 w-full"
+          >
+            <div class="flex items-start justify-between gap-4">
+              <div class="min-w-0">
+                <p class="font-semibold text-slate-900">${item.Main_food_description || '-'}</p>
+                <p class="text-sm text-slate-500 mt-1">${i18n[currentLang].foodCode}: ${item.Food_code ?? '-'}</p>
+              </div>
+              <span class="shrink-0 px-3 py-1 rounded-full text-xs font-semibold border ${badgeClass}">
+                FII ${fii.toFixed(4)}
+              </span>
+            </div>
+          </button>
+        `;
+      }).join('');
+
+      resultsContainer.classList.remove('hidden');
+    }
+
+    function selectFood(foodCode) {
+      selectedFood = foodsData.find(f => String(f.Food_code) === String(foodCode));
+      if (!selectedFood) return;
+      document.getElementById('selectedFoodName').textContent = selectedFood.Main_food_description || '-';
+      document.getElementById('selectedFoodFII').textContent = safeNumber(selectedFood.FII).toFixed(4);
+      document.getElementById('amountInput').value = '';
+      document.getElementById('foodInputModal').classList.remove('hidden');
+      document.getElementById('amountInput').focus();
+    }
+
+    function hideInputModal() {
+      document.getElementById('foodInputModal').classList.add('hidden');
+      selectedFood = null;
+    }
+
+    function handleAddFood() {
+      const amount = parseFloat(document.getElementById('amountInput').value);
+      if (!selectedFood || !amount || amount <= 0) {
+        alert(i18n[currentLang].invalidAmount);
+        return;
+      }
+
+      const contribution = (amount / 100) * safeNumber(selectedFood.FII);
+      const foodItem = {
+        id: crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+        foodCode: selectedFood.Food_code,
+        description: selectedFood.Main_food_description,
+        fii: safeNumber(selectedFood.FII),
+        amount: amount,
+        contribution: contribution
+      };
+
+      selectedFoods.push(foodItem);
+      resetToTodayRecipeView();
+      updateFoodList();
+      updateDashboard();
+      hideInputModal();
+
+      document.getElementById('searchInput').value = '';
+      handleSearch('');
+    }
+
+    function removeFood(id) {
+      selectedFoods = selectedFoods.filter(f => f.id !== id);
+      updateFoodList();
+      updateDashboard();
+      if (selectedFoods.length === 0) resetToTodayRecipeView();
+    }
+
+    function clearAllFoods() {
+      if (confirm(i18n[currentLang].confirmClearAll)) {
+        selectedFoods = [];
+        resetToTodayRecipeView();
+        updateFoodList();
+        updateDashboard();
+      }
+    }
+
+    function updateFoodList() {
+      const foodList = document.getElementById('foodList');
+      const clearAllBtn = document.getElementById('clearAllBtn');
+
+      if (selectedFoods.length === 0) {
+        foodList.innerHTML = `<p class="text-slate-400 text-center py-10">${i18n[currentLang].noFoodInList}</p>`;
+        clearAllBtn.classList.add('hidden');
+        return;
+      }
+
+      clearAllBtn.classList.remove('hidden');
+
+      foodList.innerHTML = selectedFoods.map(food => {
+        const contributionColor = food.contribution < 0 ? 'text-emerald-600' : 'text-rose-600';
+        const badgeClass = food.contribution < 0 ? 'bg-emerald-50 border-emerald-200' : 'bg-rose-50 border-rose-200';
+
+        return `
+          <div class="card-hover p-4 rounded-2xl border border-slate-200 bg-white/85 fade-in">
+            <div class="flex justify-between items-start gap-3">
+              <div class="min-w-0">
+                <p class="font-semibold text-slate-900 leading-6">${food.description}</p>
+                <p class="text-xs text-slate-500 mt-1">${i18n[currentLang].foodCode}: ${food.foodCode ?? '-'}</p>
+              </div>
+              <button
+                onclick="removeFood('${food.id}')"
+                class="shrink-0 p-2 rounded-xl text-slate-400 hover:text-red-600 hover:bg-red-50 transition-all"
+                title="删除"
+              >
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+              </button>
+            </div>
+
+            <div class="mt-3 grid grid-cols-3 gap-2">
+              <div class="rounded-xl border border-slate-200 bg-slate-50/80 p-3">
+                <p class="text-xs text-slate-500 font-semibold">${i18n[currentLang].intake}</p>
+                <p class="text-sm font-bold text-slate-900 mt-1">${safeNumber(food.amount).toFixed(0)}g</p>
+              </div>
+              <div class="rounded-xl border border-slate-200 bg-slate-50/80 p-3">
+                <p class="text-xs text-slate-500 font-semibold">${i18n[currentLang].fii}</p>
+                <p class="text-sm font-bold text-slate-900 mt-1">${safeNumber(food.fii).toFixed(4)}</p>
+              </div>
+              <div class="rounded-xl border ${badgeClass} p-3">
+                <p class="text-xs text-slate-500 font-semibold">${i18n[currentLang].contributionShort || i18n[currentLang].contribution}</p>
+                <p class="text-sm font-bold ${contributionColor} mt-1">${safeNumber(food.contribution).toFixed(4)}</p>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function updateRecipeTitle() {
+      const recipeTitle = document.getElementById('recipeTitle');
+      const viewLabel = document.getElementById('recipeViewLabel');
+
+      if (activeRecipeDate) {
+        recipeTitle.textContent = `${i18n[currentLang].todayRecipe} · ${activeRecipeDate}`;
+        viewLabel.textContent = `${i18n[currentLang].viewingRecord} ${activeRecipeDate}`;
+      } else {
+        recipeTitle.textContent = i18n[currentLang].todayRecipe;
+        viewLabel.textContent = i18n[currentLang].viewToday;
+      }
+    }
+
+    function resetToTodayRecipeView() {
+      activeRecipeDate = null;
+      updateRecipeTitle();
+    }
+
+    function updateDashboard() {
+      const totalFISI = selectedFoods.reduce((sum, food) => sum + safeNumber(food.contribution), 0);
+      const amountTotal = selectedFoods.reduce((sum, food) => sum + safeNumber(food.amount), 0);
+
+      const fisiDisplay = document.getElementById('fisiDisplay');
+      const statusBadge = document.getElementById('statusBadge');
+      const saveRecordBtn = document.getElementById('saveRecordBtn');
+
+      fisiDisplay.textContent = totalFISI.toFixed(2);
+      document.getElementById('statFoodCount').textContent = selectedFoods.length;
+      document.getElementById('statTotalAmount').textContent = `${Math.round(amountTotal)}g`;
+      document.getElementById('statHistory').textContent = fisiHistory.length;
+      document.getElementById('historyCount').textContent = fisiHistory.length;
+
+      if (selectedFoods.length === 0) {
+        statusBadge.className = 'status-pill bg-slate-100 text-slate-500 border border-slate-200';
+        statusBadge.innerHTML = `<span class="w-2.5 h-2.5 rounded-full bg-slate-400"></span><span>${i18n[currentLang].noFood}</span>`;
+        saveRecordBtn.classList.add('hidden');
+        updateRecipeTitle();
+        return;
+      }
+
+      saveRecordBtn.classList.remove('hidden');
+
+      let badgeClass = '';
+      let dotClass = '';
+      let label = '';
+      let desc = '';
+
+      if (totalFISI < -6.85) {
+        badgeClass = 'status-pill bg-emerald-50 text-emerald-700 border border-emerald-200';
+        dotClass = 'bg-emerald-500';
+        label = i18n[currentLang].antiInflammatory;
+        desc = i18n[currentLang].antiDesc;
+      } else if (totalFISI > -5.5) {
+        badgeClass = 'status-pill bg-rose-50 text-rose-700 border border-rose-200';
+        dotClass = 'bg-rose-500';
+        label = i18n[currentLang].proInflammatory;
+        desc = i18n[currentLang].proDesc;
+      } else {
+        badgeClass = 'status-pill bg-amber-50 text-amber-700 border border-amber-200';
+        dotClass = 'bg-amber-500';
+        label = currentLang === 'zh' ? '临界区间' : 'Threshold Zone';
+        desc = i18n[currentLang].neutralDesc;
+      }
+
+      statusBadge.className = badgeClass;
+      statusBadge.innerHTML = `<span class="w-2.5 h-2.5 rounded-full ${dotClass}"></span><span>${label} · ${desc}</span>`;
+      updateRecipeTitle();
+    }
+
+    function saveRecord() {
+      if (selectedFoods.length === 0) return;
+
+      const totalFISI = selectedFoods.reduce((sum, food) => sum + safeNumber(food.contribution), 0);
+      const now = new Date();
+
+      const record = {
+        id: crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+        date: now.toISOString(),
+        displayDate: formatDateTime(now.toISOString()),
+        fisi: totalFISI,
+        foods: selectedFoods.map(f => ({
+          description: f.description,
+          amount: f.amount,
+          fii: f.fii,
+          contribution: f.contribution,
+          foodCode: f.foodCode
+        }))
+      };
+
+      fisiHistory.push(record);
+      fisiHistory.sort((a, b) => new Date(a.date) - new Date(b.date));
+      if (fisiHistory.length > HISTORY_LIMIT) fisiHistory = fisiHistory.slice(-HISTORY_LIMIT);
+
+      localStorage.setItem('fisiHistory', JSON.stringify(fisiHistory));
+      updateHistoryChart();
+      renderHistoryList();
+      updateDashboard();
+      alert(i18n[currentLang].recordSaved);
+    }
+
+    function loadHistoryRecipe(index) {
+      const record = fisiHistory[index];
+      if (!record) return;
+
+      selectedFoods = record.foods.map((food, i) => ({
+        id: `history-${record.id}-${i}`,
+        description: food.description,
+        foodCode: food.foodCode ?? '-',
+        amount: safeNumber(food.amount),
+        fii: safeNumber(food.fii),
+        contribution: Number.isFinite(Number(food.contribution))
+          ? Number(food.contribution)
+          : (safeNumber(food.amount) / 100) * safeNumber(food.fii)
+      }));
+
+      activeRecipeDate = record.displayDate || formatDateTime(record.date);
+      updateRecipeTitle();
+      updateFoodList();
+      updateDashboard();
+      renderHistoryList();
+
+      const foodList = document.getElementById('foodList');
+      if (foodList) foodList.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function toggleHistoryDetails(index) {
+      const detailEl = document.getElementById(`history-detail-${index}`);
+      if (!detailEl) return;
+      detailEl.classList.toggle('hidden');
+    }
+
+    function deleteHistoryRecord(index) {
+      fisiHistory.splice(index, 1);
+      localStorage.setItem('fisiHistory', JSON.stringify(fisiHistory));
+      updateHistoryChart();
+      renderHistoryList();
+      updateDashboard();
+
+      if (fisiHistory.length === 0) {
+        activeRecipeDate = null;
+        updateRecipeTitle();
+      }
+    }
+
+    function clearHistory() {
+      if (confirm(i18n[currentLang].confirmClearHistory)) {
+        fisiHistory = [];
+        localStorage.removeItem('fisiHistory');
+        if (historyChart) {
+          historyChart.destroy();
+          historyChart = null;
+        }
+        updateHistoryChart();
+        renderHistoryList();
+        updateDashboard();
+      }
+    }
+
+    function initHistoryChart() {
+      if (fisiHistory.length === 0) return;
+      const canvas = document.getElementById('historyChart');
+      if (!canvas) return;
+
+      const labels = fisiHistory.map(r => formatDateTime(r.date));
+      const data = fisiHistory.map(r => safeNumber(r.fisi));
+
+      historyChart = new Chart(canvas, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [{
+            label: 'FISI',
+            data,
+            borderColor: 'rgb(37, 99, 235)',
+            backgroundColor: 'rgba(37, 99, 235, 0.12)',
+            borderWidth: 3,
+            fill: true,
+            tension: 0.35,
+            pointRadius: 4,
+            pointHoverRadius: 6,
+            pointBackgroundColor: '#ffffff',
+            pointBorderColor: 'rgb(37, 99, 235)',
+            pointBorderWidth: 2
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: 'nearest', intersect: false },
+          onClick: (event, elements) => {
+            if (elements.length > 0) loadHistoryRecipe(elements[0].index);
+          },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: context => `FISI: ${safeNumber(context.parsed.y).toFixed(2)}`
+              }
+            }
+          },
+          scales: {
+            x: {
+              grid: { display: false },
+              ticks: { color: '#64748b', maxRotation: 0, autoSkip: true, maxTicksLimit: 5 }
             },
-            en: {
-                 title: 'FISI Calculator',
-                subtitle: 'Food Inflammation Scores of Individuals - Food Inflammation Scores of Individuals-Calculator',
-                searchLabel: 'Search Food',
-                searchPlaceholder: 'Enter food name or code (e.g., milk, chicken, rice)',
-                foodCount: 'Loaded',
-                foodCountUnit: 'food items',
-                recommended: 'High FII Score Foods',
-                recommendedHint: 'These foods have high FII scores and may have anti-inflammatory effects',
-                searchResults: 'Search Results',
-                addFood: 'Add Food',
-                foodName: 'Food Name',
-                fiiValue: 'FII Value',
-                amount: 'Amount (grams)',
-                amountPlaceholder: 'Enter amount',
-                addToRecipe: 'Add to Recipe',
-                cancel: 'Cancel',
-                fisiTotal: 'FISI Total',
-                noFood: 'No food added',
-                criteria: 'Criteria:',
-                proInflammatory: 'Pro-inflammatory',
-                antiInflammatory: 'Anti-inflammatory',
-                formula: 'Formula: FISI = Σ(amount/100 × FII)',
-                todayRecipe: "Today's Recipe",
-                clearAll: 'Clear All',
-                noFoodInList: 'No food',
-                intake: 'Intake',
-                contribution: 'Contribution',
-                loading: 'Loading food data...',
-                loadError: 'Load failed',
-                noMatch: 'No matching food found',
-                foodCode: 'Code',
-                saveRecord: 'Save Record',
-                historyTitle: 'FISI History',
-                clearHistory: 'Clear History',
-                footerText1: 'FISI Calculator - Based on 9931 food inflammation index data',
-                footerText2: 'For reference only, not medical advice',
-                criteriaText1: '• FISI ≥ -6.85: ',
-                criteriaText2: '• FISI < -6.85: ',
-                fii: 'FII',
-                recordSaved: 'Record saved!',
-                confirmClearHistory: 'Are you sure you want to clear all history?' ,
-                invalidAmount: 'Please enter a valid amount',
-                confirmClearAll: 'Are you sure you want to clear all foods?' 
+            y: {
+              beginAtZero: false,
+              grid: { color: 'rgba(148,163,184,.18)' },
+              ticks: { color: '#64748b' }
             }
-        };
+          }
+        }
+      });
 
-        // 更新页面文本
-        function updateLanguage() {
-            const texts = i18n[currentLang];
-            document.querySelectorAll('[data-i18n]').forEach(el => {
-                const key = el.getAttribute('data-i18n');
-                if (texts[key]) {
-                        el.textContent = texts[key];
-                }
-            });
-            document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
-                const key = el.getAttribute('data-i18n-placeholder');
-                if (texts[key]) {
-                    el.placeholder = texts[key];
-                }
-            });
-            // 更新特殊元素
-            document.getElementById('loading').querySelector('p').textContent = texts.loading;
-            
-            // 更新食物数量显示
-            const foodCountText = document.getElementById('foodCount').parentElement;
-            if (foodCountText) {
-                const count = document.getElementById('foodCount').textContent;
-                foodCountText.innerHTML = `${texts.foodCount} <span id="foodCount">${count}</span> ${texts.foodCountUnit}`;
-            }
-            // 更新判定标准文本（第 168-171 行）
-            updateCriteriaText();
-            // 重新渲染食物列表和仪表盘
-            updateFoodList();
-            updateDashboard();
+      document.getElementById('historySection').classList.remove('hidden');
+    }
+
+    function updateHistoryChart() {
+      const historySection = document.getElementById('historySection');
+      if (!historySection) return;
+
+      if (fisiHistory.length === 0) {
+        if (historyChart) {
+          historyChart.destroy();
+          historyChart = null;
         }
-        function updateCriteriaText() {
-            const texts = i18n[currentLang];
-            const criteriaDiv = document.querySelector('.bg-blue-50');
-            if (criteriaDiv) {
-                criteriaDiv.innerHTML = `
-                <p class="font-medium mb-1">${texts.criteria}</p>
-                <p>${texts.criteriaText1}${texts.proInflammatory}</p>
-                <p>${texts.criteriaText2}${texts.antiInflammatory}</p>
-                <p class="mt-2 text-xs text-gray-500">${texts.formula}</p>
-                `;
-            }
-        }
-        // 显示推荐食物（高FII分数）
-        function displayRecommendedFoods() {
-            const topFoods = [...foodsData]
-                .filter(food => food.FII_score > 25)
-                .sort((a, b) => b.FII_score - a.FII_score);
-            
-            const scrollContent = document.getElementById('scrollContent');
-            const foodsHTML = topFoods.map(food => {
-                const fiiColor = food.FII < 0 ? 'text-green-600' : 'text-red-600';
-                return `
-                    <div class="p-3 border border-gray-200 rounded-lg hover:bg-orange-50 cursor-pointer transition-colors"
-                         onclick="selectFood('${food.Food_code}')">
-                        <div class="flex justify-between items-start">
-                            <div class="flex-1">
-                                <p class="font-medium text-gray-900">${food.Main_food_description}</p>
-                                <p class="text-sm text-gray-500">${i18n[currentLang].foodCode}: ${food.Food_code}</p>
-                            </div>
-                            <div class="text-right ml-4">
-                                <p class="text-sm font-medium ${fiiColor}">FII: ${food.FII.toFixed(4)}</p>
-                                <p class="text-xs text-orange-600 font-semibold">Score: ${food.FII_score.toFixed(2)}</p>
-                            </div>
-                        </div>
+        historySection.classList.add('hidden');
+        renderHistoryList();
+        return;
+      }
+
+      const labels = fisiHistory.map(r => formatDateTime(r.date));
+      const data = fisiHistory.map(r => safeNumber(r.fisi));
+
+      if (historyChart) {
+        historyChart.data.labels = labels;
+        historyChart.data.datasets[0].data = data;
+        historyChart.update();
+      } else {
+        initHistoryChart();
+      }
+
+      historySection.classList.remove('hidden');
+      renderHistoryList();
+    }
+
+    function renderHistoryList() {
+      const historyList = document.getElementById('historyList');
+      const historySection = document.getElementById('historySection');
+      if (!historyList) return;
+
+      document.getElementById('historyCount').textContent = fisiHistory.length;
+      document.getElementById('statHistory').textContent = fisiHistory.length;
+
+      if (fisiHistory.length === 0) {
+        historyList.innerHTML = `
+          <div class="rounded-2xl border border-dashed border-slate-200 bg-white/70 p-6 text-center text-slate-400">
+            ${i18n[currentLang].noHistoryRecords}
+          </div>
+        `;
+        if (historySection) historySection.classList.add('hidden');
+        return;
+      }
+
+      if (historySection) historySection.classList.remove('hidden');
+      const displayRecords = [...fisiHistory].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+      historyList.innerHTML = displayRecords.map((record) => {
+        const originalIndex = fisiHistory.findIndex(r => r.id === record.id);
+        const displayTime = record.displayDate || formatDateTime(record.date);
+        const isActive = activeRecipeDate && activeRecipeDate === displayTime;
+        const isLatest = originalIndex === fisiHistory.length - 1;
+
+        return `
+          <div class="rounded-2xl border border-slate-200 bg-white/85 overflow-hidden ${isActive ? 'history-active' : ''}">
+            <div class="p-4">
+              <div class="flex items-start justify-between gap-3">
+                <div class="min-w-0">
+                  <div class="flex flex-wrap items-center gap-2">
+                    <p class="font-semibold text-slate-900">${displayTime}</p>
+                    ${isLatest ? `<span class="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-blue-100 text-blue-700 border border-blue-200">Latest</span>` : ''}
+                  </div>
+                  <p class="text-xs text-slate-500 mt-1">${i18n[currentLang].recordTime}: ${displayTime}</p>
+                  <p class="text-sm text-slate-500 mt-2">FISI: <span class="font-bold text-slate-800">${safeNumber(record.fisi).toFixed(2)}</span> ｜ ${record.foods.length} ${i18n[currentLang].foods}</p>
+                </div>
+                <div class="flex flex-wrap gap-2 justify-end">
+                  <button onclick="toggleHistoryDetails(${originalIndex})" class="px-3 py-2 rounded-xl text-sm font-semibold border border-slate-200 bg-white hover:bg-slate-50 transition-all">${i18n[currentLang].details}</button>
+                  <button onclick="loadHistoryRecipe(${originalIndex})" class="px-3 py-2 rounded-xl text-sm font-semibold bg-blue-600 text-white hover:bg-blue-700 transition-all">${i18n[currentLang].load}</button>
+                  <button onclick="deleteHistoryRecord(${originalIndex})" class="px-3 py-2 rounded-xl text-sm font-semibold border border-red-200 bg-red-50 text-red-700 hover:bg-red-100 transition-all">${i18n[currentLang].delete}</button>
+                </div>
+              </div>
+            </div>
+
+            <div id="history-detail-${originalIndex}" class="hidden border-t border-slate-200 bg-slate-50/70 p-4">
+              <div class="grid gap-2">
+                ${record.foods.map(food => `
+                  <div class="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white/90 p-3">
+                    <div class="min-w-0">
+                      <p class="text-sm font-semibold text-slate-900 truncate">${food.description}</p>
+                      <p class="text-xs text-slate-500 mt-1">${i18n[currentLang].foodCode}: ${food.foodCode ?? '-'}</p>
                     </div>
-                `;
-            }).join('');
-            scrollContent.innerHTML = foodsHTML + foodsHTML;
-            
-            // 启用自动滚动
-            const scrollContainer = document.getElementById('scrollContainer');
-            scrollContent.classList.add('auto-scrolling');
-            
-            let userScrolling = false;
-            let scrollTimeout;
-            
-            scrollContainer.addEventListener('scroll', () => {
-                userScrolling = true;
-                scrollContent.classList.remove('auto-scrolling');
-                clearTimeout(scrollTimeout);
-                scrollTimeout = setTimeout(() => {
-                    userScrolling = false;
-                    scrollContent.classList.add('auto-scrolling');
-                }, 3000);
-            });
-        }
-
-        // 初始化
-        async function init() {
-            try {
-                const response = await fetch('./data/foods.json');
-                if (!response.ok) {
-                    throw new Error('无法加载食物数据');
-                }
-                
-                foodsData = await response.json();
-                console.log(`已加载 9931 种食物数据`);
-                
-                document.getElementById('foodCount').textContent = 9931;
-                
-                fuse = new Fuse(foodsData, {
-                    keys: ['Main_food_description', 'Food_code'],
-                    threshold: 0.3,
-                    minMatchCharLength: 2,
-                    includeScore: true
-                });
-                
-                displayRecommendedFoods();
-                initHistoryChart();
-                
-                document.getElementById('loading').classList.add('hidden');
-                document.getElementById('app').classList.remove('hidden');
-                
-                bindEvents();
-                
-            } catch (error) {
-                console.error('加载数据失败:', error);
-                document.getElementById('loading').innerHTML = `
-                    <div class="text-red-600">
-                        <svg class="w-16 h-16 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                        </svg>
-                        <p class="text-xl font-semibold mb-2">${i18n[currentLang].loadError}</p>
-                        <p>请确保 "data/foods.json" 文件存在</p>
-                        <p class="text-sm mt-2 text-gray-600">错误信息: ${error.message}</p>
+                    <div class="text-right shrink-0">
+                      <p class="text-xs text-slate-500">${safeNumber(food.amount).toFixed(0)}g ｜ FII ${safeNumber(food.fii).toFixed(4)}</p>
+                      <p class="text-sm font-bold ${safeNumber(food.contribution) < 0 ? 'text-emerald-600' : 'text-rose-600'} mt-1">
+                        ${i18n[currentLang].contribution}: ${safeNumber(food.contribution ?? ((safeNumber(food.amount) / 100) * safeNumber(food.fii))).toFixed(4)}
+                      </p>
                     </div>
-                `;
-            }
-        }
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
 
-        // 绑定事件
-        function bindEvents() {
-            const searchInput = document.getElementById('searchInput');
-            let debounceTimer;
-            
-            searchInput.addEventListener('input', (e) => {
-                clearTimeout(debounceTimer);
-                debounceTimer = setTimeout(() => {
-                    handleSearch(e.target.value);
-                }, 300);
-            });
-            
-            document.getElementById('addFoodBtn').addEventListener('click', handleAddFood);
-            document.getElementById('cancelBtn').addEventListener('click', hideInputModal);
-            document.getElementById('clearAllBtn').addEventListener('click', clearAllFoods);
-            document.getElementById('saveRecordBtn').addEventListener('click', saveRecord);
-            document.getElementById('clearHistoryBtn').addEventListener('click', clearHistory);
-            
-            // 语言切换
-            document.getElementById('langToggle').addEventListener('click', () => {
-                currentLang = currentLang === 'zh' ? 'en' : 'zh';
-                updateLanguage();
-                displayRecommendedFoods();
-            });
-            
-            // Enter键添加食物
-            document.getElementById('amountInput').addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') {
-                    handleAddFood();
-                }
-            });
-        }
-
-        // 搜索处理
-        function handleSearch(query) {
-            const resultsContainer = document.getElementById('searchResults');
-            const resultsList = document.getElementById('resultsList');
-            const recommendedContainer = document.getElementById('recommendedFoods');
-            
-            if (!query || query.length < 2) {
-                resultsContainer.classList.add('hidden');
-                recommendedContainer.classList.remove('hidden'); // 显示推荐
-                return;
-            }
-            
-            // 隐藏推荐食物
-            recommendedContainer.classList.add('hidden');
-            
-            const results = fuse.search(query).slice(0, 10);
-            
-            if (results.length === 0) {
-                resultsList.innerHTML = `<p class="text-gray-400 text-center py-4">${i18n[currentLang].noMatch}</p>`;
-                resultsContainer.classList.remove('hidden');
-                return;
-            }
-            
-            resultsList.innerHTML = results.map(result => {
-                const food = result.item;
-                const fiiColor = food.FII < 0 ? 'text-green-600' : 'text-red-600';
-                return `
-                    <div class="p-3 border border-gray-200 rounded-lg hover:bg-blue-50 cursor-pointer transition-colors"
-                         onclick="selectFood('${food.Food_code}')">
-                        <div class="flex justify-between items-start">
-                            <div class="flex-1">
-                                <p class="font-medium text-gray-900">${food.Main_food_description}</p>
-                                <p class="text-sm text-gray-500">${i18n[currentLang].foodCode}: ${food.Food_code}</p>
-                            </div>
-                            <div class="text-right ml-4">
-                                <p class="text-sm font-medium ${fiiColor}">
-                                    FII: ${food.FII.toFixed(4)}
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-            
-            resultsContainer.classList.remove('hidden');
-        }
-
-        // 选择食物
-        function selectFood(foodCode) {
-            selectedFood = foodsData.find(f => f.Food_code === foodCode);
-            if (!selectedFood) return;
-            
-            document.getElementById('selectedFoodName').textContent = selectedFood.Main_food_description;
-            document.getElementById('selectedFoodFII').textContent = `${selectedFood.FII.toFixed(4)}`;
-            document.getElementById('amountInput').value = '';
-            document.getElementById('foodInputModal').classList.remove('hidden');
-            document.getElementById('amountInput').focus();
-        }
-
-        // 隐藏输入模态框
-        function hideInputModal() {
-            document.getElementById('foodInputModal').classList.add('hidden');
-            selectedFood = null;
-        }
-
-        // 添加食物
-        function handleAddFood() {
-            const amount = parseFloat(document.getElementById('amountInput').value);
-            
-            if (!selectedFood || !amount || amount <= 0) {
-                alert(i18n[currentLang].invalidAmount);
-                return;
-            }
-            
-            // 计算贡献值：FISI = Σ(摄入量/100 × FII)
-            const contribution = (amount / 100) * selectedFood.FII;
-            
-            const foodItem = {
-                id: Date.now().toString(),
-                foodCode: selectedFood.Food_code,
-                description: selectedFood.Main_food_description,
-                fii: selectedFood.FII,
-                amount: amount,
-                contribution: contribution
-            };
-            
-            selectedFoods.push(foodItem);
-            updateFoodList();
-            updateDashboard();
-            hideInputModal();
-            
-            // 清空搜索
-            document.getElementById('searchInput').value = '';
-            handleSearch('');
-        }
-
-        // 删除食物
-        function removeFood(id) {
-            selectedFoods = selectedFoods.filter(f => f.id !== id);
-            updateFoodList();
-            updateDashboard();
-        }
-
-        // 清空所有食物
-        function clearAllFoods() {
-            if (confirm(i18n[currentLang].confirmClearAll)) {
-                selectedFoods = [];
-                updateFoodList();
-                updateDashboard();
-            }
-        }
-
-        // 更新食物列表
-        function updateFoodList() {
-            const foodList = document.getElementById('foodList');
-            const clearAllBtn = document.getElementById('clearAllBtn');
-            
-            if (selectedFoods.length === 0) {
-                foodList.innerHTML = `<p class="text-gray-400 text-center py-8">${i18n[currentLang].noFoodInList}</p>`;
-                clearAllBtn.classList.add('hidden');
-                return;
-            }
-            
-            clearAllBtn.classList.remove('hidden');
-            
-            foodList.innerHTML = selectedFoods.map(food => {
-                const contributionColor = food.contribution < 0 ? 'text-green-600' : 'text-red-600';
-                return `
-                    <div class="p-3 border border-gray-200 rounded-lg fade-in">
-                        <div class="flex justify-between items-start mb-2">
-                            <p class="font-medium text-gray-900 flex-1">${food.description}</p>
-                            <button 
-                                onclick="removeFood('${food.id}')"
-                                class="text-red-600 hover:text-red-700 ml-2"
-                                title="删除"
-                            >
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                                </svg>
-                            </button>
-                        </div>
-                        <div class="text-sm text-gray-600 space-y-1">
-                            <p>${i18n[currentLang].intake}: ${food.amount}g</p>
-                            <p>${i18n[currentLang].fii}: ${food.fii.toFixed(4)}</p>
-                            <p class="font-medium ${contributionColor}">
-                                ${i18n[currentLang].contribution}: ${food.contribution.toFixed(4)}
-                            </p>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-        }
-
-        // 更新仪表盘
-        function updateDashboard() {
-            const totalFISI = selectedFoods.reduce((sum, food) => sum + food.contribution, 0);
-            const threshold = -6.85;
-            
-            const fisiDisplay = document.getElementById('fisiDisplay');
-            const statusBadge = document.getElementById('statusBadge');
-            const saveBtn = document.getElementById('saveRecordBtn');
-            
-            if (selectedFoods.length === 0) {
-                fisiDisplay.textContent = '0.00';
-                fisiDisplay.className = 'text-6xl font-bold text-center py-8 rounded-lg bg-gray-100 text-gray-400';
-                statusBadge.textContent = i18n[currentLang].noFood;
-                statusBadge.className = 'inline-block px-4 py-2 rounded-full text-lg font-semibold bg-gray-100 text-gray-400';
-                saveBtn.classList.add('hidden');
-                return;
-            }
-            
-            fisiDisplay.textContent = totalFISI.toFixed(2);
-            saveBtn.classList.remove('hidden');
-            
-            if (totalFISI > threshold) {
-                fisiDisplay.className = 'text-6xl font-bold text-center py-8 rounded-lg bg-red-50 text-red-600';
-                statusBadge.textContent = i18n[currentLang].proInflammatory;
-                statusBadge.className = 'inline-block px-4 py-2 rounded-full text-lg font-semibold bg-red-100 text-red-700';
-            } else {
-                fisiDisplay.className = 'text-6xl font-bold text-center py-8 rounded-lg bg-green-50 text-green-600';
-                statusBadge.textContent = i18n[currentLang].antiInflammatory;
-                statusBadge.className = 'inline-block px-4 py-2 rounded-full text-lg font-semibold bg-green-100 text-green-700';
-            }
-        }
-
-        // 保存记录
-        function saveRecord() {
-            const totalFISI = selectedFoods.reduce((sum, food) => sum + food.contribution, 0);
-            const record = {
-                date: new Date().toISOString(),
-                fisi: totalFISI,
-                foods: selectedFoods.map(f => ({
-                    description: f.description,
-                    amount: f.amount,
-                    fii: f.fii
-                }))
-            };
-            fisiHistory.push(record);
-            localStorage.setItem('fisiHistory', JSON.stringify(fisiHistory));
-            updateHistoryChart();
-            alert(i18n[currentLang].recordSaved);
-        }
-
-        // 清空历史
-        function clearHistory() {
-            if (confirm(i18n[currentLang].confirmClearHistory)) {
-                fisiHistory = [];
-                localStorage.removeItem('fisiHistory');
-                updateHistoryChart();
-            }
-        }
-
-        // 初始化图表
-        function initHistoryChart() {
-            if (fisiHistory.length === 0) return;
-            
-            const ctx = document.getElementById('historyChart');
-            const labels = fisiHistory.map(r => new Date(r.date).toLocaleDateString('zh-CN'));
-            const data = fisiHistory.map(r => r.fisi);
-            
-            historyChart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: 'FISI',
-                        data: data,
-                        borderColor: 'rgb(59, 130, 246)',
-                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                        tension: 0.3
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend: { display: false }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: false,
-                            grid: { color: 'rgba(0, 0, 0, 0.05)' }
-                        }
-                    }
-                }
-            });
-            
-            document.getElementById('historySection').classList.remove('hidden');
-        }
-
-        // 更新图表
-        function updateHistoryChart() {
-            if (fisiHistory.length === 0) {
-                if (historyChart) {
-                    historyChart.destroy();
-                    historyChart = null;
-                }
-                document.getElementById('historySection').classList.add('hidden');
-                return;
-            }
-            
-            const labels = fisiHistory.map(r => new Date(r.date).toLocaleDateString('zh-CN'));
-            const data = fisiHistory.map(r => r.fisi);
-            
-            if (historyChart) {
-                historyChart.data.labels = labels;
-                historyChart.data.datasets[0].data = data;
-                historyChart.update();
-            } else {
-                initHistoryChart();
-            }
-            
-            document.getElementById('historySection').classList.remove('hidden');
-        }
-
-        // 启动应用
-        init();
-    </script>
+    init();
+  </script>
 </body>
 </html>
