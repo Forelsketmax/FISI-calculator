@@ -526,8 +526,13 @@
     let historyChart = null;
     let activeRecipeDate = null;
     let recommendedAutoScrollTimer = null;
+    let recommendedRotationTimer = null;
+    let recommendedOffset = 0;
     const AUTO_SCROLL_STEP = 1;
     const AUTO_SCROLL_INTERVAL = 28;
+    const RECOMMENDED_ROTATE_INTERVAL = 9000;
+    const RECOMMENDED_BATCH_SIZE = 18;
+    const RECOMMENDED_STEP = 6;
     const HISTORY_LIMIT = 21;
     const ANTI_INFLAMMATORY_IMAGES = [
       { zh: '蓝莓与草莓', en: 'Blueberries and strawberries', src: 'https://images.unsplash.com/photo-1518635017498-87f514b751ba?auto=format&fit=crop&w=900&q=80' },
@@ -757,12 +762,6 @@
       displayRecommendedFoods();
     }
 
-    function getTopFoodFii(food) {
-      if (Number.isFinite(Number(food.FII_score))) return Number(food.FII_score);
-      if (Number.isFinite(Number(food.FII))) return Number(food.FII);
-      return -Infinity;
-    }
-
     function renderAntiInflammatoryGallery() {
       const gallery = document.getElementById('antiInflammatoryGallery');
       if (!gallery) return;
@@ -802,6 +801,28 @@
       startScroll();
     }
 
+    function getRotatingRecommendedFoods(highFiiFoods) {
+      if (highFiiFoods.length <= RECOMMENDED_BATCH_SIZE) return highFiiFoods;
+      const batch = [];
+      for (let i = 0; i < RECOMMENDED_BATCH_SIZE; i++) {
+        batch.push(highFiiFoods[(recommendedOffset + i) % highFiiFoods.length]);
+      }
+      return batch;
+    }
+
+    function setupRecommendedRotation(highFiiFoods) {
+      if (recommendedRotationTimer) {
+        clearInterval(recommendedRotationTimer);
+        recommendedRotationTimer = null;
+      }
+      if (highFiiFoods.length <= RECOMMENDED_BATCH_SIZE) return;
+
+      recommendedRotationTimer = setInterval(() => {
+        recommendedOffset = (recommendedOffset + RECOMMENDED_STEP) % highFiiFoods.length;
+        displayRecommendedFoods();
+      }, RECOMMENDED_ROTATE_INTERVAL);
+    }
+
     function displayRecommendedFoods() {
       const container = document.getElementById('scrollContent');
       if (!container) return;
@@ -811,17 +832,22 @@
         ? validFoods.reduce((sum, food) => sum + safeNumber(food.FII), 0) / validFoods.length
         : 0;
 
-      const topFoods = [...foodsData]
+      const highFiiFoods = [...foodsData]
         .filter(food => Number.isFinite(Number(food.FII)) && safeNumber(food.FII) > averageFii)
-        .sort((a, b) => getTopFoodFii(b) - getTopFoodFii(a))
-        .slice(0, 36);
+        .sort((a, b) => safeNumber(b.FII) - safeNumber(a.FII));
 
-      if (topFoods.length === 0) {
+      if (highFiiFoods.length === 0) {
         container.innerHTML = `<p class="text-slate-400 text-center py-6 col-span-full">${i18n[currentLang].noMatch}</p>`;
         setupRecommendedAutoScroll();
+        if (recommendedRotationTimer) {
+          clearInterval(recommendedRotationTimer);
+          recommendedRotationTimer = null;
+        }
         renderAntiInflammatoryGallery();
         return;
       }
+
+      const topFoods = getRotatingRecommendedFoods(highFiiFoods);
 
       container.innerHTML = topFoods.map(food => {
         const fii = safeNumber(food.FII);
@@ -846,6 +872,7 @@
       }).join('');
 
       setupRecommendedAutoScroll();
+      setupRecommendedRotation(highFiiFoods);
       renderAntiInflammatoryGallery();
     }
 
