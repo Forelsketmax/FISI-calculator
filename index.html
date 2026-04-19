@@ -556,7 +556,7 @@
         searchPlaceholder: '输入食物名称或代码（如：milk, chicken, rice）',
         searchTip: '支持模糊搜索，建议输入 2 个以上字符。',
         recommended: '高FII分数食物推荐',
-        recommendedHint: '按 FII 高于平均值筛选，并自动滚动展示。',
+        recommendedHint: '按 FII 从最小值（抗炎更强）展示到平均值，并自动滚动轮播。',
         antiFoodGallery: '抗炎食物灵感图',
         antiFoodGalleryHint: '建议多样搭配',
         searchResults: '搜索结果',
@@ -640,7 +640,7 @@
         searchPlaceholder: 'Enter food name or code (e.g., milk, chicken, rice)',
         searchTip: 'Fuzzy search supported. Use at least 2 characters.',
         recommended: 'High FII Foods',
-        recommendedHint: 'Filtered by FII above average and auto-scrolled for quick browsing.',
+        recommendedHint: 'Shows foods from the lowest FII (stronger anti-inflammatory) up to the average, with auto-scroll and rotation.',
         antiFoodGallery: 'Anti-inflammatory food ideas',
         antiFoodGalleryHint: 'Mix and match',
         searchResults: 'Search Results',
@@ -833,8 +833,8 @@
         : 0;
 
       const highFiiFoods = [...foodsData]
-        .filter(food => Number.isFinite(Number(food.FII)) && safeNumber(food.FII) > averageFii)
-        .sort((a, b) => safeNumber(b.FII) - safeNumber(a.FII));
+        .filter(food => Number.isFinite(Number(food.FII)) && safeNumber(food.FII) <= averageFii)
+        .sort((a, b) => safeNumber(a.FII) - safeNumber(b.FII));
 
       if (highFiiFoods.length === 0) {
         container.innerHTML = `<p class="text-slate-400 text-center py-6 col-span-full">${i18n[currentLang].noMatch}</p>`;
@@ -851,7 +851,12 @@
 
       container.innerHTML = topFoods.map(food => {
         const fii = safeNumber(food.FII);
+        const hasFiiScore = Number.isFinite(Number(food.FII_score));
+        const fiiScore = safeNumber(food.FII_score);
         const badgeClass = fii < 0 ? 'bg-emerald-100 text-emerald-700 border-emerald-200' : 'bg-rose-100 text-rose-700 border-rose-200';
+        const scoreText = hasFiiScore
+          ? `<span>FII ${fii.toFixed(4)}</span><span>FII score ${fiiScore.toFixed(4)}</span>`
+          : `<span>FII ${fii.toFixed(4)}</span>`;
         return `
           <button
             type="button"
@@ -863,8 +868,8 @@
                 <p class="font-semibold text-slate-900 leading-6">${food.Main_food_description || '-'}</p>
                 <p class="text-xs text-slate-500 mt-1">${i18n[currentLang].foodCode}: ${food.Food_code ?? '-'}</p>
               </div>
-              <span class="shrink-0 px-3 py-1 rounded-full text-xs font-semibold border ${badgeClass}">
-                FII ${fii.toFixed(4)}
+              <span class="shrink-0 px-3 py-1 rounded-full text-xs font-semibold border ${badgeClass} flex flex-col items-end">
+                ${scoreText}
               </span>
             </div>
           </button>
