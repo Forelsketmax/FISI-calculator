@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -898,11 +898,9 @@
           includeScore: true
         });
 
-        displayRecommendedFoods();
         initHistoryChart();
-        renderHistoryList();
-        updateDashboard();
         bindEvents();
+        updateLanguage();
 
         document.getElementById('loading').classList.add('hidden');
         document.getElementById('app').classList.remove('hidden');
