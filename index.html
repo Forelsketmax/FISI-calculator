@@ -334,8 +334,8 @@
           <div class="mt-5 rounded-2xl border border-blue-100 bg-blue-50/90 p-4 text-sm text-slate-700">
             <p class="font-semibold mb-2" data-i18n="criteria">判定标准：</p>
             <div id="criteriaBox">
-              <p data-i18n="criteriaText1">• FISI ≥ -6.85：</p>
-              <p data-i18n="criteriaText2">• FISI &lt; -6.85：</p>
+              <p data-i18n="criteriaText1">• FISI ≥ -6.76：</p>
+              <p data-i18n="criteriaText2">• FISI &lt; -6.76：</p>
               <p class="mt-2 text-xs text-slate-500" data-i18n="formula">计算公式：FISI = Σ(摄入量/100 × FII)</p>
             </div>
           </div>
@@ -594,8 +594,8 @@
         clearHistory: '清空历史',
         footerText1: 'FISI 计算器 - 基于9931种食物的炎症指数数据',
         footerText2: '仅供参考，不构成医疗建议',
-        criteriaText1: '• FISI ≥ -6.85：',
-        criteriaText2: '• FISI < -6.85：',
+        criteriaText1: '• FISI ≥ -6.76：',
+        criteriaText2: '• FISI < -6.76：',
         fii: 'FII',
         recordSaved: '记录已保存！',
         confirmClearHistory: '确定要清空所有历史记录吗？',
@@ -678,8 +678,8 @@
         clearHistory: 'Clear History',
         footerText1: 'FISI Calculator - Based on 9931 food inflammation index data',
         footerText2: 'For reference only, not medical advice',
-        criteriaText1: '• FISI ≥ -6.85: ',
-        criteriaText2: '• FISI < -6.85: ',
+        criteriaText1: '• FISI ≥ -6.76: ',
+        criteriaText2: '• FISI < -6.76: ',
         fii: 'FII',
         recordSaved: 'Record saved!',
         confirmClearHistory: 'Are you sure you want to clear all history?',
@@ -1160,7 +1160,7 @@
       let label = '';
       let desc = '';
 
-      if (totalFISI < -6.85) {
+      if (totalFISI < -6.76) {
         badgeClass = 'status-pill bg-emerald-50 text-emerald-700 border border-emerald-200';
         dotClass = 'bg-emerald-500';
         label = i18n[currentLang].antiInflammatory;
